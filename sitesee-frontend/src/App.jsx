@@ -5,6 +5,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import ScoutDashboard from "./pages/ScoutDashboard"; // Import it
+import AddProperty from './pages/AddProperty'; // (Adjust path if needed)
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/scout" element={<ScoutDashboard />} /> {/* Add it */}
+          <Route path="/add-property" element={<AddProperty />} />
         </Routes>
       </Router>
     </AuthProvider>

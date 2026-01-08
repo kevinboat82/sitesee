@@ -78,4 +78,24 @@ router.get('/:id/visits', auth, async (req, res) => {
     }
   });
 
+  // @route   GET /api/properties/:id
+// @desc    Get details for ONE specific property
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const property = await db.query(
+      'SELECT * FROM properties WHERE id = $1 AND user_id = $2',
+      [req.params.id, req.user.id]
+    );
+
+    if (property.rows.length === 0) {
+      return res.status(404).json({ msg: 'Property not found' });
+    }
+
+    res.json(property.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 module.exports = router;

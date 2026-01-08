@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -15,17 +14,19 @@ require('dotenv').config();
 const app = express();
 
 // Middleware
-app.use(express.json()); // Allows us to parse JSON bodies
-app.use(cors()); // Allow frontend to talk to backend
-app.use(helmet()); // Security headers
-app.use(morgan('dev')); // Logging
+app.use(express.json()); 
+app.use(cors()); 
+app.use(helmet()); 
+app.use(morgan('dev')); 
+
+// --- FIXED: Log BEFORE mounting ---
+console.log("Mounting Routes..."); 
+
 app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/scouts', scoutRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-
-console.log("Mounting Routes...");
 
 // Basic Route to Test
 app.get('/', (req, res) => {
@@ -48,5 +49,3 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);
 });
-
-//fix

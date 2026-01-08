@@ -26,7 +26,7 @@ const Dashboard = () => {
       } catch (err) {
         console.error(err);
         // Optional: Auto-logout on error
-        // handleLogout();
+         handleLogout();
       }
     };
     fetchData();
@@ -88,9 +88,12 @@ const Dashboard = () => {
           <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
              Active
           </span>
-          <button className="text-sm text-blue-600 hover:underline">
-            View Reports &rarr;
-          </button>
+          <button 
+  onClick={() => navigate(`/property/${prop.id}`)}
+  className="text-sm text-blue-600 hover:underline"
+>
+  View Reports &rarr;
+</button>
         </div>
       </div>
     ))

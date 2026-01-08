@@ -25,6 +25,8 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/scouts', scoutRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
+console.log("Mounting Routes...");
+
 // Basic Route to Test
 app.get('/', (req, res) => {
   res.json({ message: 'SiteSee API is running 🚀' });

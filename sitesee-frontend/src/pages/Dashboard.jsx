@@ -78,9 +78,29 @@ const Dashboard = () => {
         </div>
 
         {/* This is where we will list properties later */}
-        <div className="bg-gray-50 p-4 rounded-lg border border-dashed border-gray-300 text-center">
-             <p className="text-gray-500 text-sm">You have no active properties. Add one to get started!</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  {data.properties && data.properties.length > 0 ? (
+    data.properties.map((prop) => (
+      <div key={prop.id} className="border border-gray-200 p-4 rounded-lg hover:shadow-md transition bg-gray-50">
+        <h3 className="font-bold text-gray-800">{prop.name}</h3>
+        <p className="text-sm text-gray-600 mb-2">📍 {prop.address}</p>
+        <div className="flex justify-between items-center mt-3">
+          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+             Active
+          </span>
+          <button className="text-sm text-blue-600 hover:underline">
+            View Reports &rarr;
+          </button>
         </div>
+      </div>
+    ))
+  ) : (
+    <div className="col-span-2 bg-gray-50 p-6 rounded-lg border border-dashed border-gray-300 text-center">
+      <p className="text-gray-500">You have no active properties.</p>
+      <p className="text-sm text-gray-400">Add one to get started!</p>
+    </div>
+  )}
+</div>
       </div>
 
       {/* STATUS CARD Section */}

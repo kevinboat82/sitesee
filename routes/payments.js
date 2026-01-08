@@ -32,13 +32,13 @@ router.post('/initialize', auth, async (req, res) => {
     );
 
     // 2. Save the Reference to DB (so we know they are trying to pay)
-    // We update the subscription table to 'PENDING'
     const { reference, authorization_url } = paystackResponse.data.data;
 
+    // FIX: Added user_id and amount so the record is complete
     await db.query(
-      `INSERT INTO subscriptions (property_id, paystack_sub_code, status, plan_type)
-       VALUES ($1, $2, 'PENDING', 'BASIC_MONTHLY')`,
-      [property_id, reference]
+      `INSERT INTO subscriptions (user_id, property_id, paystack_sub_code, status, plan_type, amount)
+       VALUES ($1, $2, $3, 'PENDING', 'BASIC_MONTHLY', $4)`,
+      [req.user.id, property_id, reference, amount]
     );
 
     // 3. Send the URL back to the user
@@ -54,14 +54,13 @@ router.post('/initialize', auth, async (req, res) => {
 // @desc    Listen for Paystack payment success
 router.post('/webhook', async (req, res) => {
     // 1. Validate the Event (Security Check)
-    // We hash the body with our secret key and compare it to what Paystack sent.
     const hash = crypto
       .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
       .update(JSON.stringify(req.body))
       .digest('hex');
   
     if (hash !== req.headers['x-paystack-signature']) {
-      return res.status(400).send('Invalid signature'); // Block hackers
+      return res.status(400).send('Invalid signature');
     }
   
     // 2. Handle the Event
@@ -69,8 +68,6 @@ router.post('/webhook', async (req, res) => {
   
     if (event.event === 'charge.success') {
       const { reference, metadata } = event.data;
-      
-      // metadata.property_id comes from the "initialize" step we did earlier
       const propertyId = metadata.property_id;
   
       try {
@@ -83,7 +80,6 @@ router.post('/webhook', async (req, res) => {
         );
   
         // B. Create the Visit Request (The Job Ticket)
-        // We set the scheduled date to "Tomorrow" automatically
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
   
@@ -100,8 +96,30 @@ router.post('/webhook', async (req, res) => {
       }
     }
   
-    // 3. Acknowledge Paystack (Always say "OK" quickly)
+    // 3. Acknowledge Paystack
     res.sendStatus(200);
-  });
+});
+
+// @route   GET /api/payments/callback
+// @desc    Handle the user returning from Paystack
+// FIX: Changed route from '/payment/callback' to just '/callback'
+router.get('/callback', async (req, res) => {
+    const { reference } = req.query;
+
+    if (!reference) {
+        return res.status(400).send('No reference provided');
+    }
+
+    try {
+        console.log(`User returned from payment with reference: ${reference}`);
+        
+        // Redirect the user back to the Vercel Dashboard
+        res.redirect('https://sitesee-mu.vercel.app/dashboard?payment=success');
+
+    } catch (error) {
+        console.error(error);
+        res.redirect('https://sitesee-mu.vercel.app/dashboard?payment=failed');
+    }
+});
 
 module.exports = router;

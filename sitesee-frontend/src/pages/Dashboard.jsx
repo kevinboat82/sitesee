@@ -15,7 +15,8 @@ const Dashboard = () => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (!token) return navigate('/login');
+        // FIX: Changed '/login' to '/' (Your login is on the home page)
+        if (!token) return navigate('/');
 
         const res = await axios.get('https://sitesee-api.onrender.com/api/dashboard', {
           headers: { Authorization: `Bearer ${token}` }
@@ -35,7 +36,8 @@ const Dashboard = () => {
   // 2. Logout Function
   const handleLogout = () => {
     localStorage.removeItem('token'); // Destroy the key
-    navigate('/login'); // Send to login screen
+    // FIX: Changed '/login' to '/'
+    navigate('/'); 
   };
 
   if (loading) return <div className="p-10 text-center">Loading Dashboard...</div>;
@@ -76,8 +78,9 @@ const Dashboard = () => {
               PENDING / INACTIVE
             </span>
             {/* Show Pay Button only if inactive */}
+            {/* NOTE: Ensure you have a /subscribe route or change this to your payment link */}
             <button 
-                onClick={() => navigate('/subscribe')} // Assuming you have a subscribe page
+                onClick={() => navigate('/subscribe')} 
                 className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
             >
               Activate Now
@@ -158,5 +161,5 @@ const Dashboard = () => {
     </div>
   );
 };
-// Update dashboard UI
+
 export default Dashboard;

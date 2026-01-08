@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const propertyRoutes = require('./routes/properties');
 const paymentRoutes = require('./routes/payments');
 const scoutRoutes = require('./routes/scouts');
+const dashboardRoutes = require('./routes/dashboard');
 
 require('dotenv').config();
 
@@ -22,7 +23,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/scouts', scoutRoutes);
-app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/dashboard', dashboardRoutes);
 
 // Basic Route to Test
 app.get('/', (req, res) => {

@@ -1,23 +1,24 @@
-// middleware/authMiddleware.js
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'secret_key_change_me_in_prod';
+module.exports = function(req, res, next) {
+  // 1. Try to get token from 'x-auth-token' OR 'Authorization' header
+  let token = req.header('x-auth-token');
+  
+  // If not found there, check for "Bearer [token]"
+  if (!token && req.header('Authorization')) {
+    token = req.header('Authorization').replace('Bearer ', '');
+  }
 
-module.exports = function (req, res, next) {
-  // 1. Get token from header
-  const token = req.header('x-auth-token');
-
-  // 2. Check if no token
+  // 2. If still no token, deny access
   if (!token) {
     return res.status(401).json({ msg: 'No token, authorization denied' });
   }
 
   // 3. Verify token
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded; // Add the user info to the request
-    next(); // Let them pass
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded.user;
+    next();
   } catch (err) {
     res.status(401).json({ msg: 'Token is not valid' });
   }

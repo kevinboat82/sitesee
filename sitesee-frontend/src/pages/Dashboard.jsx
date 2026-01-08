@@ -27,7 +27,7 @@ const Dashboard = () => {
       } catch (err) {
         console.error(err);
         // If error (e.g., token expired), logout user
-        handleLogout();
+        //handleLogout();
       }
     };
     fetchData();

@@ -22,6 +22,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/scouts', scoutRoutes);
+app.use('/api/dashboard', require('./routes/dashboard'));
 
 // Basic Route to Test
 app.get('/', (req, res) => {

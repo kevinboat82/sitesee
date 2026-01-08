@@ -3,7 +3,10 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/authMiddleware');
 const db = require('../config/db');
-const upload = require('../config/cloudinary');
+
+// Note: If you haven't set up Cloudinary yet, this line might error. 
+// If it does, comment it out for now.
+// const upload = require('../config/cloudinary'); 
 
 // Middleware to ensure user is actually a SCOUT
 const verifyScout = (req, res, next) => {
@@ -13,14 +16,43 @@ const verifyScout = (req, res, next) => {
   next();
 };
 
+// --- CLIENT ROUTES (For You) ---
+
+// @route   POST /api/scouts/request
+// @desc    Client requests a new visit
+router.post('/request', auth, async (req, res) => {
+  const { property_id, scheduled_date, instructions } = req.body;
+
+  try {
+    if (!property_id || !scheduled_date) {
+      return res.status(400).json({ error: "Property and Date are required" });
+    }
+
+    const newVisit = await db.query(
+      `INSERT INTO visit_requests (property_id, user_id, scheduled_date, instructions, status) 
+       VALUES ($1, $2, $3, $4, 'PENDING') RETURNING *`,
+      [property_id, req.user.id, scheduled_date, instructions]
+    );
+
+    res.json(newVisit.rows[0]);
+
+  } catch (err) {
+    console.error("Visit Request Error:", err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+
+// --- SCOUT ROUTES (For the Employee) ---
+
 // @route   GET /api/scouts/jobs
 // @desc    See all available jobs (PENDING)
 router.get('/jobs', auth, verifyScout, async (req, res) => {
   try {
-    // Join with properties table so the scout knows WHERE to go
+    // FIX: Changed gps_location -> address
     const jobs = await db.query(`
-      SELECT vr.id, vr.scheduled_date, vr.admin_notes, 
-             p.name, p.gps_location, p.caretaker_phone
+      SELECT vr.id, vr.scheduled_date, vr.instructions, 
+             p.name, p.address, p.google_maps_link
       FROM visit_requests vr
       JOIN properties p ON vr.property_id = p.id
       WHERE vr.status = 'PENDING'
@@ -37,7 +69,6 @@ router.get('/jobs', auth, verifyScout, async (req, res) => {
 // @desc    Scout accepts a job
 router.put('/jobs/:id/claim', auth, verifyScout, async (req, res) => {
   try {
-    // Assign the job to THIS scout (req.user.id) and change status to ASSIGNED
     const job = await db.query(
       `UPDATE visit_requests 
        SET status = 'ASSIGNED', assigned_scout_id = $1 
@@ -50,46 +81,11 @@ router.put('/jobs/:id/claim', auth, verifyScout, async (req, res) => {
       return res.status(400).json({ msg: 'Job not found or already taken' });
     }
 
-    res.json({ msg: 'Job claimed! Get to work.', job: job.rows[0] });
+    res.json({ msg: 'Job claimed!', job: job.rows[0] });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
   }
 });
-
-// @route   POST /api/scouts/jobs/:id/complete
-// @desc    Upload photo and mark job as COMPLETE
-// 'image' is the name of the form field where the file lives
-router.post('/jobs/:id/complete', auth, verifyScout, upload.single('image'), async (req, res) => {
-    try {
-      const visitId = req.params.id;
-  
-      // 1. Check if file exists
-      if (!req.file) {
-        return res.status(400).json({ msg: 'Please upload a photo' });
-      }
-  
-      // 2. Save Media URL to Database
-      // req.file.path is the magic URL from Cloudinary
-      await db.query(
-        `INSERT INTO media (visit_id, url, media_type) VALUES ($1, $2, 'IMAGE')`,
-        [visitId, req.file.path]
-      );
-  
-      // 3. Mark Job as COMPLETED
-      const result = await db.query(
-        `UPDATE visit_requests 
-         SET status = 'COMPLETED', completed_at = NOW() 
-         WHERE id = $1 RETURNING *`,
-        [visitId]
-      );
-  
-      res.json({ msg: 'Great job! Visit completed.', proof: req.file.path });
-  
-    } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Server Error');
-    }
-  });
 
 module.exports = router;

@@ -15,7 +15,6 @@ const Dashboard = () => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
-        // FIX: Changed '/login' to '/' (Your login is on the home page)
         if (!token) return navigate('/');
 
         const res = await axios.get('https://sitesee-api.onrender.com/api/dashboard', {
@@ -26,8 +25,8 @@ const Dashboard = () => {
         setLoading(false);
       } catch (err) {
         console.error(err);
-        // If error (e.g., token expired), logout user
-        //handleLogout();
+        // Optional: Auto-logout on error
+        // handleLogout();
       }
     };
     fetchData();
@@ -35,8 +34,7 @@ const Dashboard = () => {
 
   // 2. Logout Function
   const handleLogout = () => {
-    localStorage.removeItem('token'); // Destroy the key
-    // FIX: Changed '/login' to '/'
+    localStorage.removeItem('token'); 
     navigate('/'); 
   };
 
@@ -48,8 +46,9 @@ const Dashboard = () => {
       {/* HEADER Section */}
       <div className="flex justify-between items-center mb-8">
         <div>
+          {/* --- FIX 1: Use full_name here --- */}
           <h1 className="text-3xl font-bold text-gray-800">
-            Hello, {data.user.first_name || 'User'}! 👋
+            Hello, {data.user.full_name || 'User'}! 👋
           </h1>
           <p className="text-gray-600">Welcome back to SiteSee.</p>
         </div>
@@ -59,6 +58,29 @@ const Dashboard = () => {
         >
           Logout
         </button>
+      </div>
+
+      {/* --- NEW SECTION: MY PROPERTIES (Add Projects Here) --- */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-700">My Properties</h2>
+            <p className="text-sm text-gray-500">Manage the sites you want us to scout.</p>
+          </div>
+          
+          {/* THE ADD BUTTON */}
+          <button 
+            onClick={() => navigate('/add-property')} 
+            className="bg-blue-900 text-white px-5 py-2 rounded-lg hover:bg-blue-800 transition font-bold flex items-center gap-2"
+          >
+            <span>+</span> Add New Property
+          </button>
+        </div>
+
+        {/* This is where we will list properties later */}
+        <div className="bg-gray-50 p-4 rounded-lg border border-dashed border-gray-300 text-center">
+             <p className="text-gray-500 text-sm">You have no active properties. Add one to get started!</p>
+        </div>
       </div>
 
       {/* STATUS CARD Section */}
@@ -77,8 +99,6 @@ const Dashboard = () => {
             <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold">
               PENDING / INACTIVE
             </span>
-            {/* Show Pay Button only if inactive */}
-            {/* NOTE: Ensure you have a /subscribe route or change this to your payment link */}
             <button 
                 onClick={() => navigate('/subscribe')} 
                 className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
@@ -93,7 +113,6 @@ const Dashboard = () => {
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <h2 className="text-xl font-bold text-gray-800 mb-4">Latest Scout Pictures</h2>
         
-        {/* Placeholder if no reports yet */}
         {data.reports.length === 0 ? (
           <div className="text-center py-10 text-gray-400 border-2 border-dashed rounded-lg">
             <p>No pictures yet.</p>
@@ -101,9 +120,6 @@ const Dashboard = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-             {/* This maps through images. Since we don't have real images yet, 
-                 I'll add a dummy image so you can test the viewer. */}
-             
              {/* DUMMY IMAGE FOR TESTING */}
              <div 
                className="cursor-pointer group relative overflow-hidden rounded-lg"
@@ -116,44 +132,25 @@ const Dashboard = () => {
                />
                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition" />
              </div>
-             
           </div>
         )}
       </div>
 
-      {/* LIGHTBOX / MODAL (Pop-up when clicking an image) */}
+      {/* LIGHTBOX / MODAL */}
       {selectedImage && (
         <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
           <div className="relative max-w-4xl w-full">
-            
-            {/* Close Button */}
             <button 
               onClick={() => setSelectedImage(null)}
               className="absolute -top-10 right-0 text-white text-3xl hover:text-gray-300"
             >
               &times;
             </button>
-
-            {/* Big Image */}
             <img 
               src={selectedImage} 
               alt="Full Size" 
               className="w-full h-auto max-h-[80vh] object-contain rounded-md"
             />
-
-            {/* Download Button */}
-            <div className="mt-4 text-center">
-              <a 
-                href={selectedImage} 
-                download="scout_image.jpg"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-block bg-white text-black px-6 py-2 rounded-full font-bold hover:bg-gray-200 transition"
-              >
-                Download HD Image ⬇️
-              </a>
-            </div>
-
           </div>
         </div>
       )}
@@ -161,5 +158,5 @@ const Dashboard = () => {
     </div>
   );
 };
-//dash  
+
 export default Dashboard;

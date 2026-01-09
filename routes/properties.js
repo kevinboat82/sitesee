@@ -78,12 +78,18 @@ router.get('/:id/visits', auth, async (req, res) => {
     }
   });
 
-  // @route   GET /api/properties/:id
-// @desc    Get details for ONE specific property
+// @route   GET /api/properties/:id
+// @desc    Get details for ONE specific property (including subscription status)
 router.get('/:id', auth, async (req, res) => {
   try {
+    // UPDATED QUERY: Joins with subscriptions table
     const property = await db.query(
-      'SELECT * FROM properties WHERE id = $1 AND user_id = $2',
+      `SELECT p.*, 
+              COALESCE(s.status, 'INACTIVE') as sub_status 
+       FROM properties p
+       LEFT JOIN subscriptions s 
+       ON p.id = s.property_id AND s.status = 'ACTIVE'
+       WHERE p.id = $1 AND p.user_id = $2`,
       [req.params.id, req.user.id]
     );
 

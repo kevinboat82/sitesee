@@ -22,7 +22,6 @@ const Login = () => {
 
       login(userData, token); 
 
-      // Smart Redirect
       if (userData.role === 'SCOUT') {
         navigate("/scout");
       } else {
@@ -38,17 +37,29 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center font-sans text-slate-800 bg-linear-to-br from-slate-100 via-blue-50 to-indigo-100 selection:bg-blue-200 p-4">
-      
-      <div className="bg-white/60 backdrop-blur-xl border border-white/60 shadow-2xl rounded-3xl p-8 sm:p-12 w-full max-w-md animate-fade-in-up">
+    // UPDATED: Background Image with Overlay
+    <div 
+      className="min-h-screen flex items-center justify-center font-sans text-slate-800 p-4 relative"
+      style={{
+        backgroundImage: `url('https://images.unsplash.com/photo-1563114811-739f4d740c0c?ixlib=rb-4.0.3&q=80&w=2070&auto=format&fit=crop')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Dark Overlay for readability */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"></div>
+
+      {/* Glass Card (Z-Index ensures it sits on top) */}
+      <div className="relative z-10 bg-white/80 backdrop-blur-xl border border-white/60 shadow-2xl rounded-3xl p-8 sm:p-12 w-full max-w-md animate-fade-in-up">
         
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="bg-linear-to-tr from-slate-700 to-slate-900 text-white p-3 rounded-2xl shadow-lg mb-4">
+          <div className="bg-gradient-to-tr from-slate-700 to-slate-900 text-white p-3 rounded-2xl shadow-lg mb-4">
             <HomeModernIcon className="h-8 w-8" />
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">SiteSee</h1>
-          <p className="text-slate-500 font-medium mt-2 text-center">Monitor your construction projects.</p>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">SiteSee</h1>
+          <p className="text-slate-600 font-medium mt-2 text-center">Monitor your construction projects.</p>
         </div>
 
         {/* Login Form */}
@@ -57,7 +68,8 @@ const Login = () => {
             <label className="block text-[10px] font-bold tracking-wider text-slate-500 mb-1 uppercase">Email Address</label>
             <input
               type="email"
-              className="w-full bg-white/50 border border-white/60 p-3.5 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white transition outline-none shadow-sm"
+              className="w-full bg-white/70 border border-white/60 p-3.5 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-900 focus:bg-white transition outline-none shadow-sm placeholder:text-slate-400"
+              placeholder="client@sitesee.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -68,7 +80,8 @@ const Login = () => {
              <label className="block text-[10px] font-bold tracking-wider text-slate-500 mb-1 uppercase">Password</label>
             <input
               type="password"
-              className="w-full bg-white/50 border border-white/60 p-3.5 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white transition outline-none shadow-sm"
+              className="w-full bg-white/70 border border-white/60 p-3.5 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-900 focus:bg-white transition outline-none shadow-sm placeholder:text-slate-400"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -85,30 +98,30 @@ const Login = () => {
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-xs text-slate-400 font-medium">
-            New Client? <Link to="/register" className="text-blue-600 cursor-pointer hover:underline font-bold">Create Account</Link>
+          <p className="text-xs text-slate-500 font-medium">
+            New Client? <Link to="/register" className="text-blue-700 cursor-pointer hover:underline font-bold">Create Account</Link>
           </p>
         </div>
 
-        {/* --- NEW SCOUT SECTION --- */}
-        <div className="mt-8 border-t border-slate-200/60 pt-6">
+        {/* Scout Section */}
+        <div className="mt-8 border-t border-slate-300/60 pt-6">
             <div className="flex flex-col items-center gap-2">
-                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Work with us</p>
+                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Work with us</p>
                 
                 <Link 
                     to="/scout-join"
-                    className="w-full group flex items-center justify-between p-3 rounded-xl border border-yellow-200 bg-yellow-50/50 hover:bg-yellow-50 transition cursor-pointer"
+                    className="w-full group flex items-center justify-between p-3 rounded-xl border border-yellow-200 bg-yellow-50/80 hover:bg-yellow-100 transition cursor-pointer"
                 >
                     <div className="flex items-center gap-3">
                         <div className="bg-yellow-100 p-2 rounded-lg text-yellow-700">
                             <BriefcaseIcon className="h-5 w-5" />
                         </div>
                         <div className="text-left">
-                            <p className="text-xs font-bold text-slate-700 group-hover:text-yellow-700 transition">Become a Scout</p>
-                            <p className="text-[10px] text-slate-500">Join the team & earn money</p>
+                            <p className="text-xs font-bold text-slate-800 group-hover:text-yellow-800 transition">Become a Scout</p>
+                            <p className="text-[10px] text-slate-600">Join the team & earn money</p>
                         </div>
                     </div>
-                    <ArrowRightIcon className="h-4 w-4 text-slate-300 group-hover:text-yellow-600 transition" />
+                    <ArrowRightIcon className="h-4 w-4 text-slate-400 group-hover:text-yellow-600 transition" />
                 </Link>
             </div>
         </div>

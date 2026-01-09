@@ -7,20 +7,23 @@ const db = require('../config/db');
 const crypto = require('crypto');
 
 // @route   POST /api/payments/initialize
-// @desc    Start a payment for a property subscription
+// @desc    Start a payment (Used for both Subscriptions AND New Visits)
 router.post('/initialize', auth, async (req, res) => {
-  const { property_id, amount, email } = req.body;
+  // We now accept visit details (date, instructions) in the request
+  const { property_id, amount, email, scheduled_date, instructions } = req.body;
 
   try {
-    // 1. Call Paystack API
     const paystackResponse = await axios.post(
       'https://api.paystack.co/transaction/initialize',
       {
         email: email,
-        amount: amount * 100, // Paystack counts in Pesewas (50 GHS = 5000)
+        amount: amount * 100, // Amount in Pesewas
         metadata: {
             property_id: property_id,
-            user_id: req.user.id
+            user_id: req.user.id,
+            // Pass the visit details to Paystack so we get them back in the webhook
+            scheduled_date: scheduled_date || null,
+            instructions: instructions || 'Standard Visit'
         }
       },
       {
@@ -31,17 +34,11 @@ router.post('/initialize', auth, async (req, res) => {
       }
     );
 
-    // 2. Save the Reference to DB (so we know they are trying to pay)
     const { reference, authorization_url } = paystackResponse.data.data;
 
-    // FIX: Added user_id and amount so the record is complete
-    await db.query(
-      `INSERT INTO subscriptions (user_id, property_id, paystack_sub_code, status, plan_type, amount)
-       VALUES ($1, $2, $3, 'PENDING', 'BASIC_MONTHLY', $4)`,
-      [req.user.id, property_id, reference, amount]
-    );
-
-    // 3. Send the URL back to the user
+    // Optional: Log the attempt in a 'transactions' table if you had one
+    // For now, we trust Paystack to handle the flow
+    
     res.json({ checkout_url: authorization_url, reference });
 
   } catch (err) {
@@ -51,9 +48,9 @@ router.post('/initialize', auth, async (req, res) => {
 });
 
 // @route   POST /api/payments/webhook
-// @desc    Listen for Paystack payment success
+// @desc    Paystack calls this when payment is successful
 router.post('/webhook', async (req, res) => {
-    // 1. Validate the Event (Security Check)
+    // 1. Verify Signature
     const hash = crypto
       .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
       .update(JSON.stringify(req.body))
@@ -63,63 +60,48 @@ router.post('/webhook', async (req, res) => {
       return res.status(400).send('Invalid signature');
     }
   
-    // 2. Handle the Event
     const event = req.body;
   
     if (event.event === 'charge.success') {
       const { reference, metadata } = event.data;
-      const propertyId = metadata.property_id;
+      const { property_id, scheduled_date, instructions } = metadata;
   
       try {
-        console.log(`💰 Payment received for Reference: ${reference}`);
+        console.log(`💰 Payment Success! Ref: ${reference}`);
   
-        // A. Activate the Subscription
+        // 1. Activate Subscription (If they are paying for activation)
+        // We update this regardless, just to be safe/keep them active
         await db.query(
-          `UPDATE subscriptions SET status = 'ACTIVE' WHERE paystack_sub_code = $1`,
-          [reference]
+          `UPDATE subscriptions SET status = 'ACTIVE' WHERE property_id = $1`,
+          [property_id]
+        );
+        // Note: If they didn't have a subscription row, this update does nothing, which is fine for repeat visits.
+
+        // 2. CREATE THE VISIT REQUEST (The Job Ticket)
+        // We use the date/instructions from the payment metadata
+        const visitDate = scheduled_date || new Date(new Date().setDate(new Date().getDate() + 1)); // Default to tomorrow if null
+        
+        await db.query(
+          `INSERT INTO visit_requests (property_id, user_id, status, scheduled_date, instructions, created_at)
+           VALUES ($1, $2, 'PENDING', $3, $4, NOW())`,
+          [property_id, metadata.user_id, visitDate, instructions]
         );
   
-        // B. Create the Visit Request (The Job Ticket)
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-  
-        await db.query(
-          `INSERT INTO visit_requests (property_id, status, scheduled_date, admin_notes)
-           VALUES ($1, 'PENDING', $2, 'Auto-generated from subscription payment')`,
-          [propertyId, tomorrow]
-        );
-  
-        console.log('✅ Subscription Active & Scout Job Created!');
+        console.log('✅ Visit Request Created from Payment!');
   
       } catch (err) {
         console.error('Webhook Error:', err.message);
       }
     }
   
-    // 3. Acknowledge Paystack
     res.sendStatus(200);
 });
 
 // @route   GET /api/payments/callback
-// @desc    Handle the user returning from Paystack
-// FIX: Changed route from '/payment/callback' to just '/callback'
 router.get('/callback', async (req, res) => {
     const { reference } = req.query;
-
-    if (!reference) {
-        return res.status(400).send('No reference provided');
-    }
-
-    try {
-        console.log(`User returned from payment with reference: ${reference}`);
-        
-        // Redirect the user back to the Vercel Dashboard
-        res.redirect('https://sitesee-mu.vercel.app/dashboard?payment=success');
-
-    } catch (error) {
-        console.error(error);
-        res.redirect('https://sitesee-mu.vercel.app/dashboard?payment=failed');
-    }
+    // Redirect back to dashboard with success flag
+    res.redirect('https://sitesee-mu.vercel.app/dashboard?payment=success');
 });
 
 module.exports = router;

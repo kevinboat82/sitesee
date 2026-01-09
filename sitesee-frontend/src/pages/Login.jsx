@@ -1,4 +1,3 @@
-// src/pages/Login.jsx
 import { useState, useContext } from "react";
 import api from "../api";
 import { AuthContext } from "../context/AuthContext";
@@ -9,32 +8,38 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // Get the login function from your Auth Context
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
-
-  // ... inside Login.jsx
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
+    
     try {
-        const res = await api.post("/auth/login", { 
+      // 1. Call the Backend
+      const res = await api.post("/auth/login", { 
         email,
         password,
       });
       
       const userData = res.data.user;
-      login(userData, res.data.token);
+      const token = res.data.token;
 
-      // --- NEW LOGIC HERE ---
+      // 2. Save User to Context & LocalStorage
+      // (Ensure your AuthContext 'login' function handles localStorage setting if not done here)
+      login(userData, token); 
+
+      // 3. Smart Redirect based on Role
       if (userData.role === 'SCOUT') {
         navigate("/scout");
       } else {
         navigate("/dashboard");
       }
-      // ----------------------
       
     } catch (err) {
+      console.error(err);
       alert("Login Failed: " + (err.response?.data?.error || "Server Error"));
     } finally {
       setLoading(false);
@@ -92,10 +97,15 @@ const Login = () => {
         </form>
 
         <div className="mt-8 text-center">
-  <p className="text-xs text-slate-400 font-medium">
-    Don't have an account? <Link to="/register" className="text-blue-600 cursor-pointer hover:underline font-bold">Create Account</Link>
-  </p>
-</div>
+          <p className="text-xs text-slate-400 font-medium">
+            Don't have an account? <Link to="/register" className="text-blue-600 cursor-pointer hover:underline font-bold">Create Account</Link>
+          </p>
+          
+          {/* Optional: Secret Link for Scouts */}
+          {/* <p className="mt-4 text-[10px] text-slate-300">
+             Employee? <Link to="/scout-join" className="hover:text-slate-500">Join Team</Link>
+          </p> */}
+        </div>
       </div>
 
     </div>

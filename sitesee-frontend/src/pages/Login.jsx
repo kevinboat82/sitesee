@@ -41,7 +41,7 @@ const Login = () => {
     <div 
       className="min-h-screen flex items-center justify-center font-sans text-slate-800 p-4 relative"
       style={{
-        backgroundImage: `url('https://unsplash.com/photos/man-kneeling-on-unfinished-building-during-daytime-04rZ7R1fKhY')`,
+        backgroundImage: `url('https://images.unsplash.com/photo-1563166423-482a8c14b2d6?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat'

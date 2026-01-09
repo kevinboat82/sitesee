@@ -88,4 +88,39 @@ router.put('/jobs/:id/claim', auth, verifyScout, async (req, res) => {
   }
 });
 
+const upload = require('../config/cloudinary'); // Import the config we just made
+
+// @route   POST /api/scouts/jobs/:id/complete
+// @desc    Upload photo and mark job as COMPLETE
+router.post('/jobs/:id/complete', auth, upload.single('image'), async (req, res) => {
+    try {
+      const visitId = req.params.id;
+  
+      if (!req.file) {
+        return res.status(400).json({ msg: 'Please upload a photo' });
+      }
+  
+      // 1. Save Photo URL to Media Table
+      // req.file.path comes from Cloudinary
+      await db.query(
+        `INSERT INTO media (visit_id, url, media_type) VALUES ($1, $2, 'IMAGE')`,
+        [visitId, req.file.path]
+      );
+  
+      // 2. Mark Job as COMPLETED
+      await db.query(
+        `UPDATE visit_requests 
+         SET status = 'COMPLETED', completed_at = NOW() 
+         WHERE id = $1`,
+        [visitId]
+      );
+  
+      res.json({ msg: 'Job Completed!', photo: req.file.path });
+  
+    } catch (err) {
+      console.error("Upload Error:", err.message);
+      res.status(500).send('Server Error');
+    }
+});
+//fixx
 module.exports = router;

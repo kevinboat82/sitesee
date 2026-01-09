@@ -41,7 +41,7 @@ const Login = () => {
     <div 
       className="min-h-screen flex items-center justify-center font-sans text-slate-800 p-4 relative"
       style={{
-        backgroundImage: `url('https://images.unsplash.com/photo-1563114811-739f4d740c0c?ixlib=rb-4.0.3&q=80&w=2070&auto=format&fit=crop')`,
+        backgroundImage: `url('https://unsplash.com/photos/man-kneeling-on-unfinished-building-during-daytime-04rZ7R1fKhY')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat'
@@ -55,7 +55,7 @@ const Login = () => {
         
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="bg-gradient-to-tr from-slate-700 to-slate-900 text-white p-3 rounded-2xl shadow-lg mb-4">
+          <div className="bg-linear-to-tr from-slate-700 to-slate-900 text-white p-3 rounded-2xl shadow-lg mb-4">
             <HomeModernIcon className="h-8 w-8" />
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">SiteSee</h1>

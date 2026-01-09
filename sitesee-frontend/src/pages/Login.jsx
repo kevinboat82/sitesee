@@ -38,13 +38,13 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center font-sans text-slate-800 bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 selection:bg-blue-200 p-4">
+    <div className="min-h-screen flex items-center justify-center font-sans text-slate-800 bg-linear-to-br from-slate-100 via-blue-50 to-indigo-100 selection:bg-blue-200 p-4">
       
       <div className="bg-white/60 backdrop-blur-xl border border-white/60 shadow-2xl rounded-3xl p-8 sm:p-12 w-full max-w-md animate-fade-in-up">
         
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="bg-gradient-to-tr from-slate-700 to-slate-900 text-white p-3 rounded-2xl shadow-lg mb-4">
+          <div className="bg-linear-to-tr from-slate-700 to-slate-900 text-white p-3 rounded-2xl shadow-lg mb-4">
             <HomeModernIcon className="h-8 w-8" />
           </div>
           <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">SiteSee</h1>

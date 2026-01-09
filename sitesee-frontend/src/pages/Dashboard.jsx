@@ -1,18 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate, useLocation } from 'react-router-dom'; // Added useLocation
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const location = useLocation(); // To check for payment success in URL
+  const location = useLocation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [paymentLoading, setPaymentLoading] = useState(false); // New state for button loading
-  
-  // Image Modal State
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [payingPropertyId, setPayingPropertyId] = useState(null); // Track which button is loading
 
-  // 1. Fetch Data on Load
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -26,14 +22,12 @@ const Dashboard = () => {
         setData(res.data);
         setLoading(false);
 
-        // Check for payment success message in URL (?payment=success)
+        // Check for payment success
         const params = new URLSearchParams(location.search);
         if (params.get('payment') === 'success') {
-            alert("Payment Successful! Your subscription is active. 🚀");
-            // Clear the URL so the alert doesn't show again on refresh
+            alert("Payment Successful! 🚀");
             window.history.replaceState({}, document.title, "/dashboard");
         }
-
       } catch (err) {
         console.error(err);
       }
@@ -41,40 +35,28 @@ const Dashboard = () => {
     fetchData();
   }, [navigate, location]);
 
-  // 2. Handle Subscription Payment
-  const handleSubscribe = async () => {
-    // Safety Check: Do they have a property?
-    if (!data.properties || data.properties.length === 0) {
-        alert("Please add a property first so we know what to scout!");
-        navigate('/add-property');
-        return;
-    }
-
-    setPaymentLoading(true);
+  // NEW: Pass the specific property ID to the payment function
+  const handleSubscribe = async (propertyId) => {
+    setPayingPropertyId(propertyId); // Show loading only on the clicked button
     try {
         const token = localStorage.getItem('token');
         
-        // We will subscribe for the FIRST property in the list for now
-        // In the future, you can make a dropdown to select which property
-        const propertyToSubscribe = data.properties[0];
-
         const res = await axios.post(
             'https://sitesee-api.onrender.com/api/payments/initialize',
             {
                 email: data.user.email,
-                amount: 50.00, // Price in GHS
-                property_id: propertyToSubscribe.id
+                amount: 50.00, 
+                property_id: propertyId // <--- Paying for THIS specific property
             },
             { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        // Redirect user to Paystack
         window.location.href = res.data.checkout_url;
 
     } catch (err) {
         console.error("Payment Error:", err);
-        alert("Failed to start payment. Please try again.");
-        setPaymentLoading(false);
+        alert("Failed to start payment.");
+        setPayingPropertyId(null);
     }
   };
 
@@ -88,7 +70,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       
-      {/* HEADER Section */}
+      {/* HEADER */}
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">
@@ -96,20 +78,17 @@ const Dashboard = () => {
           </h1>
           <p className="text-gray-600">Welcome back to SiteSee.</p>
         </div>
-        <button 
-          onClick={handleLogout}
-          className="bg-red-100 text-red-600 px-4 py-2 rounded-lg hover:bg-red-200 transition"
-        >
+        <button onClick={handleLogout} className="bg-red-100 text-red-600 px-4 py-2 rounded-lg hover:bg-red-200 transition">
           Logout
         </button>
       </div>
 
-      {/* MY PROPERTIES Section */}
+      {/* MY PROPERTIES GRID */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
         <div className="flex justify-between items-center mb-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-700">My Properties</h2>
-            <p className="text-sm text-gray-500">Manage the sites you want us to scout.</p>
+            <p className="text-sm text-gray-500">Each property requires an active subscription.</p>
           </div>
           <button 
             onClick={() => navigate('/add-property')} 
@@ -119,81 +98,67 @@ const Dashboard = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {data.properties && data.properties.length > 0 ? (
             data.properties.map((prop) => (
-              <div key={prop.id} className="border border-gray-200 p-4 rounded-lg hover:shadow-md transition bg-gray-50">
-                <h3 className="font-bold text-gray-800">{prop.name}</h3>
-                <p className="text-sm text-gray-600 mb-2">📍 {prop.address}</p>
-                <div className="flex justify-between items-center mt-3">
-                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                     Active
-                  </span>
+              <div key={prop.id} className="border border-gray-200 p-5 rounded-xl hover:shadow-lg transition bg-white flex flex-col justify-between">
+                
+                {/* Property Details */}
+                <div>
+                    <div className="flex justify-between items-start">
+                        <h3 className="font-bold text-xl text-gray-800">{prop.name}</h3>
+                        {/* Status Badge */}
+                        {prop.sub_status === 'ACTIVE' ? (
+                            <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold uppercase tracking-wide">
+                                Active Plan
+                            </span>
+                        ) : (
+                            <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded text-xs font-bold uppercase tracking-wide">
+                                Inactive
+                            </span>
+                        )}
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1 mb-4">📍 {prop.address}</p>
+                </div>
+
+                {/* Actions Area */}
+                <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
+                  
+                  {/* LEFT: View Reports Link */}
                   <button 
                     onClick={() => navigate(`/property/${prop.id}`)}
-                    className="text-sm text-blue-600 hover:underline"
+                    className="text-blue-600 font-semibold hover:underline text-sm"
                   >
-                    View Reports &rarr;
+                    View Reports & History
                   </button>
+
+                  {/* RIGHT: The Activate Button (Only if inactive) */}
+                  {prop.sub_status === 'ACTIVE' ? (
+                      <div className="text-green-600 text-sm font-bold flex items-center gap-1">
+                          ✅ Scout Ready
+                      </div>
+                  ) : (
+                      <button 
+                        onClick={() => handleSubscribe(prop.id)}
+                        disabled={payingPropertyId === prop.id}
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-green-700 transition"
+                      >
+                        {payingPropertyId === prop.id ? 'Loading...' : 'Activate (GHS 50)'}
+                      </button>
+                  )}
                 </div>
+
               </div>
             ))
           ) : (
-            <div className="col-span-2 bg-gray-50 p-6 rounded-lg border border-dashed border-gray-300 text-center">
-              <p className="text-gray-500">You have no active properties.</p>
-              <p className="text-sm text-gray-400">Add one to get started!</p>
+            <div className="col-span-2 bg-gray-50 p-10 rounded-lg border-2 border-dashed border-gray-300 text-center">
+              <p className="text-gray-500 text-lg">You have no properties yet.</p>
+              <button onClick={() => navigate('/add-property')} className="mt-2 text-blue-600 font-bold hover:underline">
+                Add your first property now
+              </button>
             </div>
           )}
         </div>
-      </div>
-
-      {/* SUBSCRIPTION STATUS Section */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
-        <h2 className="text-lg font-semibold text-gray-700 mb-2">Subscription Status</h2>
-        
-        {data.subscription.status === 'ACTIVE' ? (
-          <div className="flex items-center gap-3">
-            <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold">
-              ACTIVE PLAN
-            </span>
-            <p className="text-sm text-gray-500">Your scout is scheduled for visits.</p>
-          </div>
-        ) : (
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-                <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold">
-                PENDING / INACTIVE
-                </span>
-                <p className="text-sm text-gray-500 mt-1">Activate to start receiving scout visits.</p>
-            </div>
-            
-            {/* ACTIVATE BUTTON */}
-            <button 
-                onClick={handleSubscribe} 
-                disabled={paymentLoading}
-                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 font-bold shadow-lg transform transition hover:scale-105"
-            >
-              {paymentLoading ? 'Loading Paystack...' : 'Activate for GHS 50.00'}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* GALLERY Section */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">Latest Scout Pictures</h2>
-        
-        {data.reports.length === 0 ? (
-          <div className="text-center py-10 text-gray-400 border-2 border-dashed rounded-lg">
-            <p>No pictures yet.</p>
-            <p className="text-sm">Once a scout visits, pictures will appear here.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-             {/* Add map logic for reports here later if needed */}
-             <div className="text-gray-500">No images to display yet.</div>
-          </div>
-        )}
       </div>
 
     </div>

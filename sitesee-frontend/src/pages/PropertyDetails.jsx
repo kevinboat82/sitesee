@@ -37,35 +37,35 @@ const PropertyDetails = () => {
     fetchDetails();
   }, [id]);
 
-  // --- NEW: Handle Request Submission ---
-  const handleRequestVisit = async (e) => {
+ // --- UPDATED: Handle Payment for Visit ---
+ const handleRequestVisit = async (e) => {
     e.preventDefault();
     setRequestLoading(true);
+
     try {
       const token = localStorage.getItem('token');
-      
-      // Send the request to your backend
-      await axios.post(
-        'https://sitesee-api.onrender.com/api/scouts/request', 
+      const VISIT_PRICE = 50.00; // Set your price per visit here
+
+      // Call the Payment API instead of the Scout API
+      const res = await axios.post(
+        'https://sitesee-api.onrender.com/api/payments/initialize', 
         { 
-          property_id: id, 
-          scheduled_date: visitDate, 
-          instructions 
+          email: property.user_email || 'user@example.com', // In a real app, store user email in state
+          amount: VISIT_PRICE, 
+          property_id: id,
+          // Pass the instructions and date so the Webhook can save them later
+          scheduled_date: visitDate,
+          instructions: instructions
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      alert("Visit Requested Successfully! 🚀");
-      setShowModal(false);
-      setVisitDate('');
-      setInstructions('');
-      // Reload page to see the new visit in the list
-      window.location.reload();
+      // Redirect to Paystack
+      window.location.href = res.data.checkout_url;
 
     } catch (err) {
-      alert("Failed to request visit.");
+      alert("Failed to initialize payment.");
       console.error(err);
-    } finally {
       setRequestLoading(false);
     }
   };
@@ -209,9 +209,9 @@ const PropertyDetails = () => {
                         <button 
                             type="submit"
                             disabled={requestLoading}
-                            className="w-1/2 bg-blue-900 text-white py-2 rounded font-bold"
+                            className="w-1/2 bg-green-600 text-white py-2 rounded font-bold hover:bg-green-700"
                         >
-                            {requestLoading ? 'Sending...' : 'Confirm Request'}
+                            {requestLoading ? 'Processing...' : 'Pay GHS 50.00 & Schedule'}
                         </button>
                     </div>
 

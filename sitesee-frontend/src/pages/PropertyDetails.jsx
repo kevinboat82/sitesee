@@ -91,12 +91,19 @@ const PropertyDetails = () => {
                 <h1 className="text-3xl font-bold text-gray-800 mb-2">{property.name}</h1>
                 <p className="text-gray-600">📍 {property.address}</p>
             </div>
-            <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
-                Active Monitoring
-            </span>
+           {/* Dynamic Status Badge */}
+           {property.sub_status === 'ACTIVE' ? (
+                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
+                    Active Monitoring
+                </span>
+            ) : (
+                <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-bold">
+                    Inactive Plan
+                </span>
+            )}
         </div>
-
-        <div className="mt-6 flex gap-3">
+{/* Action Buttons */}
+<div className="mt-6 flex gap-3">
              {property.google_maps_link && (
                  <a 
                    href={property.google_maps_link} 
@@ -107,13 +114,28 @@ const PropertyDetails = () => {
                     🗺️ Open in Google Maps
                  </a>
              )}
-             {/* TRIGGER MODAL HERE */}
-             <button 
-                onClick={() => setShowModal(true)}
-                className="bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition text-sm font-bold"
-             >
-                📅 Request New Visit
-             </button>
+             
+             {/* LOGIC: Only show Request button if ACTIVE */}
+             {property.sub_status === 'ACTIVE' ? (
+                 <button 
+                    onClick={() => setShowModal(true)}
+                    className="bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition text-sm font-bold shadow-md"
+                 >
+                    📅 Request New Visit
+                 </button>
+             ) : (
+                 <div className="flex items-center gap-2">
+                    <button 
+                        disabled
+                        className="bg-gray-300 text-gray-500 px-4 py-2 rounded-lg text-sm font-bold cursor-not-allowed"
+                    >
+                        🔒 Request Locked
+                    </button>
+                    <p className="text-xs text-red-500 font-bold">
+                        (Activate subscription on Dashboard to request visits)
+                    </p>
+                 </div>
+             )}
         </div>
       </div>
 

@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import ScoutDashboard from "./pages/ScoutDashboard"; // Import it
 import AddProperty from './pages/AddProperty'; // (Adjust path if needed)
 import PropertyDetails from './pages/PropertyDetails';
+import ScoutSignup from './pages/ScoutSignup';
 
 function App() {
   return (

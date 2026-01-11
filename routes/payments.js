@@ -47,54 +47,64 @@ router.post('/initialize', auth, async (req, res) => {
   }
 });
 
-// @route   POST /api/payments/webhook
-// @desc    Paystack calls this when payment is successful
-router.post('/webhook', async (req, res) => {
-    // 1. Verify Signature
-    const hash = crypto
-      .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
-      .update(JSON.stringify(req.body))
-      .digest('hex');
-  
-    if (hash !== req.headers['x-paystack-signature']) {
-      return res.status(400).send('Invalid signature');
-    }
-  
-    const event = req.body;
-  
-    if (event.event === 'charge.success') {
-      const { reference, metadata } = event.data;
-      const { property_id, scheduled_date, instructions } = metadata;
-  
-      try {
-        console.log(`💰 Payment Success! Ref: ${reference}`);
-  
-        // 1. Activate Subscription (If they are paying for activation)
-        // We update this regardless, just to be safe/keep them active
-        await db.query(
-          `UPDATE subscriptions SET status = 'ACTIVE' WHERE property_id = $1`,
-          [property_id]
-        );
-        // Note: If they didn't have a subscription row, this update does nothing, which is fine for repeat visits.
+// routes/payments.js (Webhook Section Only)
 
-        // 2. CREATE THE VISIT REQUEST (The Job Ticket)
-        // We use the date/instructions from the payment metadata
-        const visitDate = scheduled_date || new Date(new Date().setDate(new Date().getDate() + 1)); // Default to tomorrow if null
-        
-        await db.query(
-          `INSERT INTO visit_requests (property_id, user_id, status, scheduled_date, instructions, created_at)
-           VALUES ($1, $2, 'PENDING', $3, $4, NOW())`,
-          [property_id, metadata.user_id, visitDate, instructions]
-        );
-  
-        console.log('✅ Visit Request Created from Payment!');
-  
-      } catch (err) {
-        console.error('Webhook Error:', err.message);
+router.post('/webhook', async (req, res) => {
+  // 1. Validate Signature
+  const hash = crypto
+    .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
+    .update(JSON.stringify(req.body))
+    .digest('hex');
+
+  if (hash !== req.headers['x-paystack-signature']) {
+    return res.status(400).send('Invalid signature');
+  }
+
+  const event = req.body;
+
+  if (event.event === 'charge.success') {
+    const { reference, metadata } = event.data;
+    
+    console.log(`🔔 Webhook Received for Ref: ${reference}`); // LOG THIS!
+
+    try {
+      // 2. Try updating using 'paystack_sub_code'
+      let result = await db.query(
+        `UPDATE subscriptions SET status = 'ACTIVE' WHERE paystack_sub_code = $1 RETURNING *`,
+        [reference]
+      );
+
+      // 3. Fallback: If that didn't work, try 'reference' column
+      if (result.rowCount === 0) {
+           console.log("⚠️ paystack_sub_code not found, trying 'reference' column...");
+           result = await db.query(
+              `UPDATE subscriptions SET status = 'ACTIVE' WHERE reference = $1 RETURNING *`,
+              [reference]
+           );
       }
+
+      if (result.rowCount > 0) {
+          console.log('✅ Subscription Activated!');
+      } else {
+          console.error('❌ Could not find subscription to activate. Ref:', reference);
+      }
+
+      // 4. Handle "New Visit" requests (if metadata exists)
+      if (metadata && metadata.scheduled_date) {
+           await db.query(
+            `INSERT INTO visit_requests (property_id, user_id, status, scheduled_date, instructions, created_at)
+             VALUES ($1, $2, 'PENDING', $3, $4, NOW())`,
+            [metadata.property_id, metadata.user_id, metadata.scheduled_date, metadata.instructions || 'Paid Visit']
+          );
+          console.log('✅ Visit Job Created!');
+      }
+
+    } catch (err) {
+      console.error('Webhook Error:', err.message);
     }
-  
-    res.sendStatus(200);
+  }
+
+  res.sendStatus(200);
 });
 
 // @route   GET /api/payments/callback

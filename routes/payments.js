@@ -4,7 +4,9 @@ const router = express.Router();
 const auth = require('../middleware/authMiddleware');
 const axios = require('axios');
 const db = require('../config/db');
+const https = require('https');
 const crypto = require('crypto');
+
 
 // @route   POST /api/payments/initialize
 // @desc    Start a payment (Used for both Subscriptions AND New Visits)

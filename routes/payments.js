@@ -13,25 +13,26 @@ const crypto = require('crypto');
 // routes/payments.js
 
 router.post('/initialize', auth, async (req, res) => {
-  const { email, amount, plan_type, property_id } = req.body;
+  // 1. Add 'is_visit' to the inputs
+  const { email, amount, plan_type, property_id, is_visit, scheduled_date, instructions } = req.body;
 
   try {
-    // 1. Generate a Unique Reference
     const reference = crypto.randomBytes(8).toString('hex');
 
-    // 2. CRITICAL STEP: Save to Database FIRST
-    // We insert the SAME reference into both 'reference' and 'paystack_sub_code' columns
-    const newSub = await db.query(
-      `INSERT INTO subscriptions 
-       (user_id, property_id, status, plan_type, start_date, end_date, reference, paystack_sub_code)
-       VALUES ($1, $2, 'PENDING', $3, NOW(), NOW() + INTERVAL '30 days', $4, $4)
-       RETURNING *`,
-      [req.user.id, property_id, plan_type || 'BASIC', reference]
-    );
+    // 2. LOGIC CHECK: Only create a Subscription row if it is NOT a visit
+    if (!is_visit) {
+        await db.query(
+          `INSERT INTO subscriptions 
+           (user_id, property_id, status, plan_type, start_date, end_date, reference, paystack_sub_code)
+           VALUES ($1, $2, 'PENDING', $3, NOW(), NOW() + INTERVAL '30 days', $4, $4)`,
+          [req.user.id, property_id, plan_type || 'BASIC', reference]
+        );
+        console.log(`✅ Pending Subscription Created for Ref: ${reference}`);
+    } else {
+        console.log(`✅ Visit Payment Started for Ref: ${reference}`);
+    }
 
-    console.log(`✅ Pending Subscription Created for Ref: ${reference}`);
-
-    // 3. Send to Paystack
+    // 3. Send to Paystack (Pass Visit Data in Metadata)
     const params = JSON.stringify({
       email: email,
       amount: amount * 100, 
@@ -40,15 +41,13 @@ router.post('/initialize', auth, async (req, res) => {
       metadata: {
         user_id: req.user.id,
         property_id: property_id,
-        custom_fields: [
-          {
-            display_name: "Property ID",
-            variable_name: "property_id",
-            value: property_id
-          }
-        ]
+        is_visit: is_visit, // <--- Flag for Webhook
+        scheduled_date: scheduled_date, // <--- Pass to Webhook
+        instructions: instructions // <--- Pass to Webhook
       }
     });
+
+    // ... (Rest of the Paystack request code is the same) ...
 
     const options = {
       hostname: 'api.paystack.co',

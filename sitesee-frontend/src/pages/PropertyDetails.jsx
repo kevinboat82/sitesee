@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useContext } from 'react'; // Import useContext
+import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext'; // Import AuthContext
+import { AuthContext } from '../context/AuthContext';
 
 const PropertyDetails = () => {
   const { id } = useParams(); 
@@ -11,6 +11,7 @@ const PropertyDetails = () => {
   const [property, setProperty] = useState(null);
   const [visits, setVisits] = useState([]); 
   const [loading, setLoading] = useState(true);
+  const [activating, setActivating] = useState(false); // Loading state for activation
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
@@ -39,7 +40,41 @@ const PropertyDetails = () => {
     fetchDetails();
   }, [id]);
 
- const handleRequestVisit = async (e) => {
+  // --- FUNCTION 1: Activate Subscription (GHS 50 / Month) ---
+  const handleActivate = async () => {
+    if (!window.confirm("Start Monthly Subscription for GHS 50?")) return;
+    
+    setActivating(true);
+    try {
+        const token = localStorage.getItem('token');
+        const res = await axios.post(
+            'https://sitesee-api.onrender.com/api/payments/initialize', 
+            { 
+              email: user?.email, 
+              amount: 50.00, 
+              property_id: id,
+              is_visit: false, // This is a Subscription
+              plan_type: 'BASIC'
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+        
+        if (res.data.authorization_url) {
+            window.location.href = res.data.authorization_url;
+        } else {
+            alert("Error: No payment link received.");
+            setActivating(false);
+        }
+
+    } catch (err) {
+        console.error(err);
+        alert("Activation failed.");
+        setActivating(false);
+    }
+  };
+
+  // --- FUNCTION 2: Request Single Visit (Pay-Per-Visit) ---
+  const handleRequestVisit = async (e) => {
     e.preventDefault();
     setRequestLoading(true);
 
@@ -50,17 +85,16 @@ const PropertyDetails = () => {
       const res = await axios.post(
         'https://sitesee-api.onrender.com/api/payments/initialize', 
         { 
-          email: user?.email, // ✅ Use Real User Email
+          email: user?.email,
           amount: VISIT_PRICE, 
           property_id: id,
-          is_visit: true, // ✅ Tell Backend this is a Visit
+          is_visit: true, // This is a One-Time Visit
           scheduled_date: visitDate,
           instructions: instructions
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      // ✅ Fix: Use authorization_url (not checkout_url)
       if (res.data.authorization_url) {
         window.location.href = res.data.authorization_url;
       } else {
@@ -90,11 +124,12 @@ const PropertyDetails = () => {
 
       {/* HEADER */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
                 <h1 className="text-3xl font-bold text-gray-800 mb-2">{property.name}</h1>
                 <p className="text-gray-600">📍 {property.address}</p>
             </div>
+           
            {/* Status Badge */}
            {property.sub_status === 'ACTIVE' ? (
                 <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
@@ -108,15 +143,15 @@ const PropertyDetails = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="mt-6 flex gap-3">
+        <div className="mt-6 flex flex-wrap gap-3">
              {property.google_maps_link && (
                  <a 
                    href={property.google_maps_link} 
                    target="_blank" 
                    rel="noreferrer"
-                   className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition text-sm font-bold"
+                   className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition text-sm font-bold flex items-center"
                  >
-                    🗺️ Open in Google Maps
+                    🗺️ Open Maps
                  </a>
              )}
              
@@ -128,17 +163,14 @@ const PropertyDetails = () => {
                     📅 Request New Visit
                  </button>
              ) : (
-                 <div className="flex items-center gap-2">
-                    <button 
-                        disabled
-                        className="bg-gray-300 text-gray-500 px-4 py-2 rounded-lg text-sm font-bold cursor-not-allowed"
-                    >
-                        🔒 Request Locked
-                    </button>
-                    <p className="text-xs text-red-500 font-bold">
-                        (Activate subscription first)
-                    </p>
-                 </div>
+                 // --- RESTORED ACTIVATE BUTTON ---
+                 <button 
+                    onClick={handleActivate}
+                    disabled={activating}
+                    className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition text-sm font-bold shadow-md flex items-center gap-2 animate-pulse"
+                 >
+                    {activating ? "Processing..." : "⚡ Activate Plan (GHS 50)"}
+                 </button>
              )}
         </div>
       </div>
@@ -160,7 +192,7 @@ const PropertyDetails = () => {
                                 {new Date(visit.scheduled_date).toDateString()}
                             </p>
                             <p className="text-sm text-gray-500">
-                                Status: <span className="font-bold">{visit.status || 'PENDING'}</span>
+                                Status: <span className={`font-bold ${visit.status === 'COMPLETED' ? 'text-green-600' : 'text-yellow-600'}`}>{visit.status || 'PENDING'}</span>
                             </p>
                             {visit.instructions && <p className="text-xs text-gray-400 mt-1">Note: "{visit.instructions}"</p>}
                         </div>
@@ -217,7 +249,7 @@ const PropertyDetails = () => {
                             disabled={requestLoading}
                             className="w-1/2 bg-green-600 text-white py-2 rounded font-bold hover:bg-green-700"
                         >
-                            {requestLoading ? 'Processing...' : 'Pay GHS 50.00 & Schedule'}
+                            {requestLoading ? 'Processing...' : 'Pay GHS 50 & Schedule'}
                         </button>
                     </div>
 

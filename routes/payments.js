@@ -8,42 +8,82 @@ const crypto = require('crypto');
 
 // @route   POST /api/payments/initialize
 // @desc    Start a payment (Used for both Subscriptions AND New Visits)
+// routes/payments.js
+
 router.post('/initialize', auth, async (req, res) => {
-  // We now accept visit details (date, instructions) in the request
-  const { property_id, amount, email, scheduled_date, instructions } = req.body;
+  const { email, amount, plan_type, property_id } = req.body;
 
   try {
-    const paystackResponse = await axios.post(
-      'https://api.paystack.co/transaction/initialize',
-      {
-        email: email,
-        amount: amount * 100, // Amount in Pesewas
-        metadata: {
-            property_id: property_id,
-            user_id: req.user.id,
-            // Pass the visit details to Paystack so we get them back in the webhook
-            scheduled_date: scheduled_date || null,
-            instructions: instructions || 'Standard Visit'
-        }
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      }
+    // 1. Generate a Unique Reference
+    const reference = crypto.randomBytes(8).toString('hex');
+
+    // 2. CRITICAL STEP: Save to Database FIRST
+    // We insert the SAME reference into both 'reference' and 'paystack_sub_code' columns
+    const newSub = await db.query(
+      `INSERT INTO subscriptions 
+       (user_id, property_id, status, plan_type, start_date, end_date, reference, paystack_sub_code)
+       VALUES ($1, $2, 'PENDING', $3, NOW(), NOW() + INTERVAL '30 days', $4, $4)
+       RETURNING *`,
+      [req.user.id, property_id, plan_type || 'BASIC', reference]
     );
 
-    const { reference, authorization_url } = paystackResponse.data.data;
+    console.log(`✅ Pending Subscription Created for Ref: ${reference}`);
 
-    // Optional: Log the attempt in a 'transactions' table if you had one
-    // For now, we trust Paystack to handle the flow
-    
-    res.json({ checkout_url: authorization_url, reference });
+    // 3. Send to Paystack
+    const params = JSON.stringify({
+      email: email,
+      amount: amount * 100, 
+      reference: reference, 
+      callback_url: "https://sitesee-api.onrender.com/api/payments/callback",
+      metadata: {
+        user_id: req.user.id,
+        property_id: property_id,
+        custom_fields: [
+          {
+            display_name: "Property ID",
+            variable_name: "property_id",
+            value: property_id
+          }
+        ]
+      }
+    });
+
+    const options = {
+      hostname: 'api.paystack.co',
+      port: 443,
+      path: '/transaction/initialize',
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    };
+
+    const paystackReq = https.request(options, paystackRes => {
+      let data = '';
+      paystackRes.on('data', (chunk) => { data += chunk; });
+      paystackRes.on('end', () => {
+        const responseData = JSON.parse(data);
+        if (responseData.status) {
+            res.json({ authorization_url: responseData.data.authorization_url });
+        } else {
+            console.error("Paystack Init Failed:", responseData.message);
+            res.status(400).json({ error: "Payment initialization failed" });
+        }
+      });
+    });
+
+    paystackReq.on('error', error => {
+      console.error(error);
+      res.status(500).json({ error: "Connection to payment gateway failed" });
+    });
+
+    paystackReq.write(params);
+    paystackReq.end();
 
   } catch (err) {
-    console.error(err.response ? err.response.data : err.message);
-    res.status(500).json({ error: 'Paystack Error' });
+    console.error("Initialize Error:", err.message);
+    res.status(500).send('Server Error');
   }
 });
 

@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react'; // Import useContext
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext'; // Import AuthContext
 
 const PropertyDetails = () => {
   const { id } = useParams(); 
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext); // Get logged in user data
   
   const [property, setProperty] = useState(null);
   const [visits, setVisits] = useState([]); 
   const [loading, setLoading] = useState(true);
 
-  // --- NEW: Modal State ---
+  // Modal State
   const [showModal, setShowModal] = useState(false);
   const [visitDate, setVisitDate] = useState('');
   const [instructions, setInstructions] = useState('');
@@ -37,31 +39,34 @@ const PropertyDetails = () => {
     fetchDetails();
   }, [id]);
 
- // --- UPDATED: Handle Payment for Visit ---
  const handleRequestVisit = async (e) => {
     e.preventDefault();
     setRequestLoading(true);
 
     try {
       const token = localStorage.getItem('token');
-      const VISIT_PRICE = 50.00; // Set your price per visit here
+      const VISIT_PRICE = 50.00;
 
-      // Call the Payment API instead of the Scout API
       const res = await axios.post(
         'https://sitesee-api.onrender.com/api/payments/initialize', 
         { 
-          email: property.user_email || 'user@example.com', // In a real app, store user email in state
+          email: user?.email, // ✅ Use Real User Email
           amount: VISIT_PRICE, 
           property_id: id,
-          // Pass the instructions and date so the Webhook can save them later
+          is_visit: true, // ✅ Tell Backend this is a Visit
           scheduled_date: visitDate,
           instructions: instructions
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      // Redirect to Paystack
-      window.location.href = res.data.checkout_url;
+      // ✅ Fix: Use authorization_url (not checkout_url)
+      if (res.data.authorization_url) {
+        window.location.href = res.data.authorization_url;
+      } else {
+        alert("Payment Error: No URL returned");
+        setRequestLoading(false);
+      }
 
     } catch (err) {
       alert("Failed to initialize payment.");
@@ -76,7 +81,6 @@ const PropertyDetails = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-6 relative">
       
-      {/* Back Button */}
       <button 
         onClick={() => navigate('/dashboard')} 
         className="mb-6 text-gray-500 hover:text-blue-900 font-bold flex items-center gap-2"
@@ -91,7 +95,7 @@ const PropertyDetails = () => {
                 <h1 className="text-3xl font-bold text-gray-800 mb-2">{property.name}</h1>
                 <p className="text-gray-600">📍 {property.address}</p>
             </div>
-           {/* Dynamic Status Badge */}
+           {/* Status Badge */}
            {property.sub_status === 'ACTIVE' ? (
                 <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
                     Active Monitoring
@@ -102,8 +106,9 @@ const PropertyDetails = () => {
                 </span>
             )}
         </div>
-{/* Action Buttons */}
-<div className="mt-6 flex gap-3">
+
+        {/* Action Buttons */}
+        <div className="mt-6 flex gap-3">
              {property.google_maps_link && (
                  <a 
                    href={property.google_maps_link} 
@@ -115,7 +120,6 @@ const PropertyDetails = () => {
                  </a>
              )}
              
-             {/* LOGIC: Only show Request button if ACTIVE */}
              {property.sub_status === 'ACTIVE' ? (
                  <button 
                     onClick={() => setShowModal(true)}
@@ -132,7 +136,7 @@ const PropertyDetails = () => {
                         🔒 Request Locked
                     </button>
                     <p className="text-xs text-red-500 font-bold">
-                        (Activate subscription on Dashboard to request visits)
+                        (Activate subscription first)
                     </p>
                  </div>
              )}
@@ -161,7 +165,9 @@ const PropertyDetails = () => {
                             {visit.instructions && <p className="text-xs text-gray-400 mt-1">Note: "{visit.instructions}"</p>}
                         </div>
                         {visit.photo_url && (
-                             <img src={visit.photo_url} alt="Update" className="w-16 h-16 object-cover rounded" />
+                             <a href={visit.photo_url} target="_blank" rel="noreferrer">
+                                <img src={visit.photo_url} alt="Site" className="w-16 h-16 object-cover rounded border hover:opacity-80 transition" />
+                             </a>
                         )}
                     </div>
                 ))}
@@ -169,7 +175,7 @@ const PropertyDetails = () => {
         )}
       </div>
 
-      {/* --- MODAL POPUP --- */}
+      {/* MODAL */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">

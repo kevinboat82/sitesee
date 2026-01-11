@@ -42,33 +42,44 @@ const PropertyDetails = () => {
 
   // --- FUNCTION 1: Activate Subscription (GHS 50 / Month) ---
   const handleActivate = async () => {
+    // 1. Confirm Intent
     if (!window.confirm("Start Monthly Subscription for GHS 50?")) return;
     
     setActivating(true);
+    const safeEmail = user?.email || "client@sitesee.com";
+
     try {
         const token = localStorage.getItem('token');
+        console.log("🚀 Initializing Payment...");
+
         const res = await axios.post(
             'https://sitesee-api.onrender.com/api/payments/initialize', 
             { 
-              email: user?.email, 
+              email: safeEmail, 
               amount: 50.00, 
-              property_id: id,
-              is_visit: false, // This is a Subscription
+              property_id: id, 
               plan_type: 'BASIC'
             },
             { headers: { Authorization: `Bearer ${token}` } }
         );
-        
-        if (res.data.authorization_url) {
-            window.location.href = res.data.authorization_url;
+
+        console.log("📦 Server Payload:", res.data); // WATCH THIS LOG IN CONSOLE
+
+        // 2. THE FIX: Check BOTH possible locations for the URL
+        const paystackUrl = res.data.authorization_url || res.data.data?.authorization_url;
+
+        if (paystackUrl) {
+            console.log("✅ Redirecting to:", paystackUrl);
+            window.location.href = paystackUrl; // Go to Paystack
         } else {
-            alert("Error: No payment link received.");
+            console.error("❌ Link missing in response:", res.data);
+            alert("Payment System Error: The server did not return a valid link. Check Console.");
             setActivating(false);
         }
 
     } catch (err) {
-        console.error(err);
-        alert("Activation failed.");
+        console.error("💥 Payment Failed:", err);
+        alert("Connection Error. Please try again.");
         setActivating(false);
     }
   };

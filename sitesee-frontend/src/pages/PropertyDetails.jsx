@@ -46,40 +46,43 @@ const PropertyDetails = () => {
     if (!window.confirm("Start Monthly Subscription for GHS 50?")) return;
     
     setActivating(true);
+    // Use fallback email if user.email is missing
     const safeEmail = user?.email || "client@sitesee.com";
 
     try {
         const token = localStorage.getItem('token');
-        console.log("🚀 Initializing Payment...");
-
+        
         const res = await axios.post(
             'https://sitesee-api.onrender.com/api/payments/initialize', 
             { 
               email: safeEmail, 
               amount: 50.00, 
               property_id: id, 
-              plan_type: 'BASIC'
+              plan_type: 'BASIC',
+              is_visit: false 
             },
             { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        console.log("📦 Server Payload:", res.data); // WATCH THIS LOG IN CONSOLE
+        console.log("📦 FULL SERVER RESPONSE:", res.data); // <--- Check this in Console
 
-        // 2. THE FIX: Check BOTH possible locations for the URL
+        // 2. SAFETY CHECK: Find the URL
         const paystackUrl = res.data.authorization_url || res.data.data?.authorization_url;
 
-        if (paystackUrl) {
-            console.log("✅ Redirecting to:", paystackUrl);
-            window.location.href = paystackUrl; // Go to Paystack
+        // 3. THE GUARD RAIL: Only redirect if it is a real website link
+        if (paystackUrl && paystackUrl.startsWith('http')) {
+            console.log("✅ Valid URL found. Redirecting...");
+            window.location.href = paystackUrl;
         } else {
-            console.error("❌ Link missing in response:", res.data);
-            alert("Payment System Error: The server did not return a valid link. Check Console.");
+            console.error("❌ CRITICAL: Server returned 200 OK but no valid URL.");
+            alert("Payment Error: The payment provider did not return a link. Please try again.");
             setActivating(false);
         }
 
     } catch (err) {
-        console.error("💥 Payment Failed:", err);
-        alert("Connection Error. Please try again.");
+        console.error("💥 Payment Request Failed:", err);
+        const errorMsg = err.response?.data?.error || "Connection Error";
+        alert(`Payment Failed: ${errorMsg}`);
         setActivating(false);
     }
   };

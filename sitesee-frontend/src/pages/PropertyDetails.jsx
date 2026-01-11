@@ -183,7 +183,7 @@ const PropertyDetails = () => {
                     disabled={activating}
                     className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition text-sm font-bold shadow-md flex items-center gap-2 animate-pulse"
                  >
-                    {activating ? "Processing..." : "⚡ Activate Plan (GHS 50) - V2"}
+                    {activating ? "Processing..." : "⚡ Activate Plan (GHS 50) "}
                  </button>
              )}
         </div>

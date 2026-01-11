@@ -35,27 +35,48 @@ const Dashboard = () => {
     fetchData();
   }, [navigate, location]);
 
-  // NEW: Pass the specific property ID to the payment function
+  // --- FIXED: Robust Payment Function ---
   const handleSubscribe = async (propertyId) => {
+    if (!window.confirm("Start Monthly Subscription for GHS 50?")) return;
+    
     setPayingPropertyId(propertyId); // Show loading only on the clicked button
+    
+    // 1. Safe Email Fallback
+    const safeEmail = data?.user?.email || "client@sitesee.com";
+
     try {
         const token = localStorage.getItem('token');
         
         const res = await axios.post(
             'https://sitesee-api.onrender.com/api/payments/initialize',
             {
-                email: data.user.email,
+                email: safeEmail,
                 amount: 50.00, 
-                property_id: propertyId // <--- Paying for THIS specific property
+                property_id: propertyId,
+                plan_type: 'BASIC',
+                is_visit: false // Explicitly say this is a SUBSCRIPTION
             },
             { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        window.location.href = res.data.checkout_url;
+        console.log("Paystack Res:", res.data); // Debug Log
+
+        // 2. Smart Redirect Logic
+        // Check both possible locations for the URL
+        const paystackUrl = res.data.authorization_url || res.data.data?.authorization_url;
+
+        if (paystackUrl && paystackUrl.startsWith('http')) {
+            window.location.href = paystackUrl;
+        } else {
+            console.error("Link missing:", res.data);
+            alert("Error: Payment link not found from server.");
+            setPayingPropertyId(null);
+        }
 
     } catch (err) {
         console.error("Payment Error:", err);
-        alert("Failed to start payment.");
+        const errorMsg = err.response?.data?.error || "Failed to start payment";
+        alert(errorMsg);
         setPayingPropertyId(null);
     }
   };
@@ -132,16 +153,19 @@ const Dashboard = () => {
                     View Reports & History
                   </button>
 
-                  {/* RIGHT: The Activate Button (Only if inactive) */}
+                  {/* RIGHT: The Activate Button */}
                   {prop.sub_status === 'ACTIVE' ? (
                       <div className="text-green-600 text-sm font-bold flex items-center gap-1">
                           ✅ Scout Ready
                       </div>
                   ) : (
                       <button 
-                        onClick={() => handleSubscribe(prop.id)}
+                        onClick={(e) => {
+                             e.stopPropagation();
+                             handleSubscribe(prop.id);
+                        }}
                         disabled={payingPropertyId === prop.id}
-                        className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-green-700 transition"
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-green-700 transition flex items-center gap-2"
                       >
                         {payingPropertyId === prop.id ? 'Loading...' : 'Activate (GHS 50)'}
                       </button>

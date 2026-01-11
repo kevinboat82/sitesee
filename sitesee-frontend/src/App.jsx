@@ -8,6 +8,7 @@ import ScoutDashboard from "./pages/ScoutDashboard"; // Import it
 import AddProperty from './pages/AddProperty'; // (Adjust path if needed)
 import PropertyDetails from './pages/PropertyDetails';
 import ScoutSignup from './pages/ScoutSignup';
+import ScoutLogin from "./pages/ScoutLogin";
 
 function App() {
   return (
@@ -20,7 +21,8 @@ function App() {
           <Route path="/scout" element={<ScoutDashboard />} /> {/* Add it */}
           <Route path="/add-property" element={<AddProperty />} />
           <Route path="/property/:id" element={<PropertyDetails />} />
-          <Route path="/scout-join" element={<ScoutSignup />} />.
+          <Route path="/scout-login" element={<ScoutLogin />} />
+          <Route path="/scout-join" element={<ScoutSignup />} />
         </Routes>
       </Router>
     </AuthProvider>

@@ -1,4 +1,4 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import api from "../api";
 import { AuthContext } from "../context/AuthContext";
 import { HomeModernIcon, ArrowRightIcon, BriefcaseIcon } from "@heroicons/react/24/outline";

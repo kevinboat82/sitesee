@@ -43,15 +43,21 @@ const ScoutDashboard = () => {
     navigate('/');
   };
 
-  // 1. Handle File Selection
+  // 1. Handle File Selection (Append Mode)
   const handleFileSelect = (e, jobId) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    setSelectedFiles(prev => ({
-      ...prev,
-      [jobId]: files
-    }));
+    setSelectedFiles(prev => {
+      const existing = prev[jobId] || [];
+      return {
+        ...prev,
+        [jobId]: [...existing, ...files]
+      };
+    });
+
+    // Clear value so the same file can be selected again if needed
+    e.target.value = "";
   };
 
   // 2. Clear Selection
@@ -73,7 +79,7 @@ const ScoutDashboard = () => {
     const imageCount = files.filter(f => f.type.startsWith('image')).length;
 
     if (imageCount < 5 || videoCount < 2) {
-      if (!window.confirm(`⚠️ Recommendation Check\n\nYou selected:\n- ${imageCount} Photos (Goal: 5+)\n- ${videoCount} Videos (Goal: 2+)\n\nDo you want to submit anyway?`)) {
+      if (!window.confirm(`⚠️ Recommendation Check\n\nYou captured:\n- ${imageCount} Photos (Goal: 5+)\n- ${videoCount} Videos (Goal: 2+)\n\nDo you want to submit anyway?`)) {
         return;
       }
     }
@@ -88,7 +94,7 @@ const ScoutDashboard = () => {
       await api.post(`/scouts/jobs/${jobId}/complete`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      alert(`✅ GREAT JOB!\n\n${files.length} files uploaded successfully.\nVisit marked as complete.`);
+      alert(`✅ GREAT JOB!\n\n${files.length} captured media files uploaded successfully.\nVisit marked as complete.`);
       clearSelection(jobId);
       fetchJobs();
     } catch (err) {
@@ -239,12 +245,12 @@ const ScoutDashboard = () => {
                       {hasFiles && (
                         <div className="bg-white/5 rounded-xl p-4 border border-white/10 flex flex-col gap-2">
                           <div className="flex justify-between items-center mb-1">
-                            <span className="text-xs font-bold text-white/50 uppercase tracking-wider">Ready to Upload</span>
+                            <span className="text-xs font-bold text-white/50 uppercase tracking-wider">Captured Media</span>
                             <button
                               onClick={() => clearSelection(job.id)}
                               className="text-xs text-red-400 hover:text-red-300 font-medium hover:underline"
                             >
-                              Cancel Selection
+                              Clear All
                             </button>
                           </div>
 
@@ -262,17 +268,53 @@ const ScoutDashboard = () => {
                         </div>
                       )}
 
-                      <div className="flex gap-3">
-                        {/* 2. Main Action: Select OR Upload */}
-                        <div className="relative flex-1">
+                      <div className="flex flex-col gap-3">
 
-                          {/* Main Button */}
+                        {/* INPUT BUTTONS - Separate Photo/Video to enforce capture */}
+                        {!hasFiles || (hasFiles && uploadingId !== job.id) ? (
+                          <div className="flex gap-2">
+                            {/* TAKE PHOTO BUTTON */}
+                            <div className="relative flex-1">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                onChange={(e) => handleFileSelect(e, job.id)}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                              />
+                              <button className="w-full py-3 rounded-xl font-bold text-xs sm:text-sm flex flex-col sm:flex-row justify-center items-center gap-1 sm:gap-2 bg-white/10 hover:bg-white/20 text-white transition-all border border-white/5">
+                                <CameraIcon className="h-5 w-5 text-amber-400" />
+                                <span>Snap Photo</span>
+                              </button>
+                            </div>
+
+                            {/* RECORD VIDEO BUTTON */}
+                            <div className="relative flex-1">
+                              <input
+                                type="file"
+                                accept="video/*"
+                                capture="environment"
+                                onChange={(e) => handleFileSelect(e, job.id)}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                              />
+                              <button className="w-full py-3 rounded-xl font-bold text-xs sm:text-sm flex flex-col sm:flex-row justify-center items-center gap-1 sm:gap-2 bg-white/10 hover:bg-white/20 text-white transition-all border border-white/5">
+                                <div className="relative w-5 h-5 flex items-center justify-center">
+                                  <div className="absolute w-4 h-4 rounded-full border-2 border-red-500"></div>
+                                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                                </div>
+                                <span>Rec Video</span>
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+
+                        <div className="flex gap-3">
+                          {/* SUBMIT BUTTON */}
                           {hasFiles ? (
-                            // UPLOAD BUTTON state
                             <button
                               onClick={() => handleUpload(job.id)}
                               disabled={uploadingId === job.id}
-                              className={`w-full py-4 rounded-xl font-bold text-sm flex justify-center items-center gap-2.5 transition-all duration-300 ${uploadingId === job.id
+                              className={`flex-1 py-4 rounded-xl font-bold text-sm flex justify-center items-center gap-2.5 transition-all duration-300 ${uploadingId === job.id
                                   ? 'bg-white/10 text-white/50 cursor-wait'
                                   : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-500/20 scale-100 hover:scale-[1.02]'
                                 }`}
@@ -280,46 +322,33 @@ const ScoutDashboard = () => {
                               {uploadingId === job.id ? (
                                 <>
                                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                  Uploading {currentFiles.length} files...
+                                  Uploading...
                                 </>
                               ) : (
                                 <>
                                   <CheckCircleIcon className="h-5 w-5" />
-                                  Submit Report
+                                  Submit {currentFiles.length} Captures
                                 </>
                               )}
                             </button>
                           ) : (
-                            // SELECT BUTTON state
-                            <>
-                              <input
-                                type="file"
-                                multiple
-                                accept="image/*,video/*"
-                                onChange={(e) => handleFileSelect(e, job.id)}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                              />
-                              <button
-                                className="w-full py-4 rounded-xl font-semibold text-sm flex justify-center items-center gap-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-black hover:from-amber-400 hover:to-orange-400 shadow-lg shadow-amber-500/20 transition-all"
-                              >
-                                <CameraIcon className="h-5 w-5" />
-                                Select Photos & Videos
-                              </button>
-                            </>
+                            <div className="flex-1 flex items-center justify-center text-white/30 text-xs italic bg-white/5 rounded-xl border border-dashed border-white/10">
+                              Start by taking a photo or video
+                            </div>
+                          )}
+
+                          {/* Maps Button */}
+                          {job.google_maps_link && (
+                            <a
+                              href={job.google_maps_link}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-5 py-4 bg-white/10 hover:bg-white/15 rounded-xl transition-all duration-300 flex items-center justify-center"
+                            >
+                              <MapPinIcon className="h-6 w-6 text-white/70" />
+                            </a>
                           )}
                         </div>
-
-                        {/* Maps Button */}
-                        {job.google_maps_link && (
-                          <a
-                            href={job.google_maps_link}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="px-5 py-4 bg-white/10 hover:bg-white/15 rounded-xl transition-all duration-300 flex items-center justify-center"
-                          >
-                            <MapPinIcon className="h-6 w-6 text-white/70" />
-                          </a>
-                        )}
                       </div>
                     </div>
 

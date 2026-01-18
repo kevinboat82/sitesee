@@ -143,23 +143,27 @@ const Login = () => {
           {/* Scout Section */}
           <div className="mt-8 border-t border-slate-700/50 pt-6">
             <div className="flex flex-col items-center gap-3">
-              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Work with us</p>
+              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">For Scouts</p>
 
               <Link
-                to="/scout-join"
-                className="w-full group flex items-center justify-between p-4 rounded-xl border border-amber-500/20 bg-amber-500/10 hover:bg-amber-500/20 hover:border-amber-500/40 transition-all duration-300 cursor-pointer"
+                to="/scout-login"
+                className="w-full group flex items-center justify-between p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 hover:border-amber-500/50 transition-all duration-300 cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="bg-amber-500/20 p-2.5 rounded-lg text-amber-400">
                     <BriefcaseIcon className="h-5 w-5" />
                   </div>
                   <div className="text-left">
-                    <p className="text-sm font-bold text-white group-hover:text-amber-300 transition">Become a Scout</p>
-                    <p className="text-[11px] text-slate-400">Join the team & earn money</p>
+                    <p className="text-sm font-bold text-white group-hover:text-amber-300 transition">Scout Login</p>
+                    <p className="text-[11px] text-slate-400">Access your scout dashboard</p>
                   </div>
                 </div>
                 <ArrowRightIcon className="h-4 w-4 text-slate-500 group-hover:text-amber-400 group-hover:translate-x-1 transition-all" />
               </Link>
+
+              <p className="text-xs text-slate-500 font-medium">
+                Want to join? <Link to="/scout-join" className="text-amber-400 cursor-pointer hover:text-amber-300 hover:underline font-bold transition">Apply as Scout</Link>
+              </p>
             </div>
           </div>
 

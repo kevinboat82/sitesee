@@ -18,11 +18,16 @@ const pool = new Pool({
 // Test the connection when the app starts
 pool.connect((err, client, release) => {
   if (err) {
-    // This will print the exact reason if it fails again
     return console.error('Error acquiring client', err.stack);
   }
   console.log(`✅ Connected to Database (${isNeonConnection ? 'Cloud/Neon' : 'Local'})`);
   release();
+});
+
+// IMPORTANT: Handle idle client errors to prevent app crash
+pool.on('error', (err, client) => {
+  console.error('Unexpected error on idle client', err);
+  // Don't exit process, just log it. The pool will discard the client.
 });
 
 module.exports = {

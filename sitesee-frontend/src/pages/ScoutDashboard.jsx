@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import api from "../api";
 import { AuthContext } from "../context/AuthContext";
-import { MapPinIcon, CameraIcon, CheckCircleIcon, ArrowPathIcon, ArrowRightIcon, ClockIcon } from "@heroicons/react/24/solid";
+import { MapPinIcon, CameraIcon, CheckCircleIcon, ArrowPathIcon, ClockIcon } from "@heroicons/react/24/solid";
 import { ArrowRightStartOnRectangleIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 
@@ -13,6 +13,10 @@ const ScoutDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [uploadingId, setUploadingId] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  // State for selected files per job
+  // Format: { jobId: [File, File, ...] }
+  const [selectedFiles, setSelectedFiles] = useState({});
 
   // Fetch Jobs
   const fetchJobs = async (showRefresh = false) => {
@@ -34,33 +38,67 @@ const ScoutDashboard = () => {
     fetchJobs();
   }, []);
 
-  // Handle Upload Photo
-  const handleUpload = async (e, jobId) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  // 1. Handle File Selection
+  const handleFileSelect = (e, jobId) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    setSelectedFiles(prev => ({
+      ...prev,
+      [jobId]: files
+    }));
+  };
+
+  // 2. Clear Selection
+  const clearSelection = (jobId) => {
+    setSelectedFiles(prev => {
+      const next = { ...prev };
+      delete next[jobId];
+      return next;
+    });
+  };
+
+  // 3. Handle Upload
+  const handleUpload = async (jobId) => {
+    const files = selectedFiles[jobId];
+    if (!files || files.length === 0) return;
+
+    // Optional: Warn if fewer than recommended files
+    const videoCount = files.filter(f => f.type.startsWith('video')).length;
+    const imageCount = files.filter(f => f.type.startsWith('image')).length;
+
+    if (imageCount < 5 || videoCount < 2) {
+      if (!window.confirm(`⚠️ Recommendation Check\n\nYou selected:\n- ${imageCount} Photos (Goal: 5+)\n- ${videoCount} Videos (Goal: 2+)\n\nDo you want to submit anyway?`)) {
+        return;
+      }
+    }
 
     const formData = new FormData();
-    formData.append("image", file);
+    files.forEach(file => {
+      formData.append("media", file);
+    });
 
     setUploadingId(jobId);
     try {
       await api.post(`/scouts/jobs/${jobId}/complete`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      alert("✅ Photo uploaded! Job marked as complete.");
+      alert(`✅ GREAT JOB!\n\n${files.length} files uploaded successfully.\nVisit marked as complete.`);
+      clearSelection(jobId);
       fetchJobs();
     } catch (err) {
       console.error(err);
-      alert("Upload failed. Please try again.");
+      alert("❌ Upload failed. Please check your connection and try again.");
     } finally {
       setUploadingId(null);
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -152,94 +190,148 @@ const ScoutDashboard = () => {
               </button>
             </div>
           ) : (
-            jobs.map((job, index) => (
-              <div
-                key={job.id}
-                className="group bg-gradient-to-br from-white/10 to-white/5 rounded-2xl overflow-hidden border border-white/10 hover:border-white/20 transition-all duration-500"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                {/* Job Content */}
-                <div className="p-5">
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-white group-hover:text-amber-300 transition-colors duration-300">
-                        {job.name}
-                      </h3>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <MapPinIcon className="h-3.5 w-3.5 text-red-400" />
-                        <span className="text-sm text-white/50">{job.address}</span>
+            jobs.map((job, index) => {
+              const currentFiles = selectedFiles[job.id] || [];
+              const hasFiles = currentFiles.length > 0;
+              const imgCount = currentFiles.filter(f => f.type.startsWith('image')).length;
+              const vidCount = currentFiles.filter(f => f.type.startsWith('video')).length;
+
+              return (
+                <div
+                  key={job.id}
+                  className="group bg-gradient-to-br from-white/10 to-white/5 rounded-2xl overflow-hidden border border-white/10 hover:border-white/20 transition-all duration-500"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  {/* Job Content */}
+                  <div className="p-5">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-white group-hover:text-amber-300 transition-colors duration-300">
+                          {job.name}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <MapPinIcon className="h-3.5 w-3.5 text-red-400" />
+                          <span className="text-sm text-white/50">{job.address}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-400 text-xs px-2.5 py-1 rounded-full font-medium">
+                        <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                        Available
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-400 text-xs px-2.5 py-1 rounded-full font-medium">
-                      <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-                      Available
-                    </div>
-                  </div>
 
-                  {/* Instructions Card */}
-                  <div className="bg-black/30 rounded-xl p-4 mb-4 border-l-2 border-amber-500">
-                    <div className="flex items-center gap-2 mb-2">
-                      <ClockIcon className="h-3.5 w-3.5 text-amber-400" />
-                      <span className="text-xs text-amber-400 font-medium">{formatDate(job.scheduled_date)}</span>
+                    {/* Instructions Card */}
+                    <div className="bg-black/30 rounded-xl p-4 mb-4 border-l-2 border-amber-500">
+                      <div className="flex items-center gap-2 mb-2">
+                        <ClockIcon className="h-3.5 w-3.5 text-amber-400" />
+                        <span className="text-xs text-amber-400 font-medium">{formatDate(job.scheduled_date)}</span>
+                      </div>
+                      <p className="text-sm text-white/70 leading-relaxed">
+                        "{job.instructions || 'Standard site inspection'}"
+                      </p>
                     </div>
-                    <p className="text-sm text-white/70 leading-relaxed">
-                      "{job.instructions || 'Standard site inspection'}"
-                    </p>
-                  </div>
 
-                  {/* Actions */}
-                  <div className="flex gap-3">
-                    {/* Camera/Upload Button */}
-                    <div className="relative flex-1">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={(e) => handleUpload(e, job.id)}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                        disabled={uploadingId === job.id}
-                      />
-                      <button
-                        className={`w-full py-3.5 rounded-xl font-semibold text-sm flex justify-center items-center gap-2.5 transition-all duration-300 ${uploadingId === job.id
-                            ? 'bg-white/10 text-white/50 cursor-wait'
-                            : 'bg-gradient-to-r from-amber-500 to-orange-500 text-black hover:from-amber-400 hover:to-orange-400 shadow-lg shadow-amber-500/20'
-                          }`}
-                      >
-                        {uploadingId === job.id ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                            Uploading...
-                          </>
-                        ) : (
-                          <>
-                            <CameraIcon className="h-5 w-5" />
-                            Capture & Complete
-                          </>
+                    {/* Selection / Upload Area */}
+                    <div className="space-y-3">
+
+                      {/* 1. Preview (If files selected) */}
+                      {hasFiles && (
+                        <div className="bg-white/5 rounded-xl p-4 border border-white/10 flex flex-col gap-2">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs font-bold text-white/50 uppercase tracking-wider">Ready to Upload</span>
+                            <button
+                              onClick={() => clearSelection(job.id)}
+                              className="text-xs text-red-400 hover:text-red-300 font-medium hover:underline"
+                            >
+                              Cancel Selection
+                            </button>
+                          </div>
+
+                          {/* Counts */}
+                          <div className="flex gap-2">
+                            <div className={`flex-1 rounded-lg p-2 text-center border ${imgCount >= 5 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
+                              <p className="text-lg font-bold">{imgCount}</p>
+                              <p className="text-[10px] uppercase opacity-70">Photos (5+)</p>
+                            </div>
+                            <div className={`flex-1 rounded-lg p-2 text-center border ${vidCount >= 2 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
+                              <p className="text-lg font-bold">{vidCount}</p>
+                              <p className="text-[10px] uppercase opacity-70">Videos (2+)</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex gap-3">
+                        {/* 2. Main Action: Select OR Upload */}
+                        <div className="relative flex-1">
+
+                          {/* Main Button */}
+                          {hasFiles ? (
+                            // UPLOAD BUTTON state
+                            <button
+                              onClick={() => handleUpload(job.id)}
+                              disabled={uploadingId === job.id}
+                              className={`w-full py-4 rounded-xl font-bold text-sm flex justify-center items-center gap-2.5 transition-all duration-300 ${uploadingId === job.id
+                                  ? 'bg-white/10 text-white/50 cursor-wait'
+                                  : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-500/20 scale-100 hover:scale-[1.02]'
+                                }`}
+                            >
+                              {uploadingId === job.id ? (
+                                <>
+                                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                  Uploading {currentFiles.length} files...
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircleIcon className="h-5 w-5" />
+                                  Submit Report
+                                </>
+                              )}
+                            </button>
+                          ) : (
+                            // SELECT BUTTON state
+                            <>
+                              <input
+                                type="file"
+                                multiple
+                                accept="image/*,video/*"
+                                onChange={(e) => handleFileSelect(e, job.id)}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                              />
+                              <button
+                                className="w-full py-4 rounded-xl font-semibold text-sm flex justify-center items-center gap-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-black hover:from-amber-400 hover:to-orange-400 shadow-lg shadow-amber-500/20 transition-all"
+                              >
+                                <CameraIcon className="h-5 w-5" />
+                                Select Photos & Videos
+                              </button>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Maps Button */}
+                        {job.google_maps_link && (
+                          <a
+                            href={job.google_maps_link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-5 py-4 bg-white/10 hover:bg-white/15 rounded-xl transition-all duration-300 flex items-center justify-center"
+                          >
+                            <MapPinIcon className="h-6 w-6 text-white/70" />
+                          </a>
                         )}
-                      </button>
+                      </div>
                     </div>
 
-                    {/* Maps Button */}
-                    {job.google_maps_link && (
-                      <a
-                        href={job.google_maps_link}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-4 py-3.5 bg-white/10 hover:bg-white/15 rounded-xl transition-all duration-300 flex items-center justify-center"
-                      >
-                        <MapPinIcon className="h-5 w-5 text-white/70" />
-                      </a>
-                    )}
                   </div>
                 </div>
-              </div>
-            ))
+              )
+            })
           )}
         </div>
 
-        {/* Bottom Spacing for Mobile */}
-        <div className="h-8"></div>
+        {/* Bottom Spacing */}
+        <div className="h-20"></div>
       </main>
 
       {/* Subtle Gradient Background Effect */}

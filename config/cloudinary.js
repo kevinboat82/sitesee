@@ -13,8 +13,9 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'sitesee_uploads', // The folder name in your Cloudinary dashboard
-    allowed_formats: ['jpg', 'png', 'jpeg'],
+    folder: 'sitesee_uploads',
+    allowed_formats: ['jpg', 'png', 'jpeg', 'mp4', 'mov', 'avi'],
+    resource_type: 'auto', // Important for video uploads
   },
 });
 

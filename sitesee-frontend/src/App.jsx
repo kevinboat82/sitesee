@@ -9,6 +9,7 @@ import AddProperty from './pages/AddProperty'; // (Adjust path if needed)
 import PropertyDetails from './pages/PropertyDetails';
 import ScoutSignup from './pages/ScoutSignup';
 import ScoutLogin from "./pages/ScoutLogin";
+import AdminDashboard from "./pages/AdminDashboard";
 
 function App() {
   return (
@@ -18,7 +19,8 @@ function App() {
           <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/scout" element={<ScoutDashboard />} /> {/* Add it */}
+          <Route path="/scout" element={<ScoutDashboard />} />
+          <Route path="/admin" element={<AdminDashboard />} /> {/* Admin Route */}
           <Route path="/add-property" element={<AddProperty />} />
           <Route path="/property/:id" element={<PropertyDetails />} />
           <Route path="/scout-login" element={<ScoutLogin />} />

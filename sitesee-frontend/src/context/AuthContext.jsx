@@ -7,6 +7,9 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem("token"));
 
+  // Loading state for initial auth check
+  const [authLoading, setAuthLoading] = useState(true);
+
   // Load User on App Start
   useEffect(() => {
     const loadUser = async () => {
@@ -25,7 +28,11 @@ export const AuthProvider = ({ children }) => {
         } catch (err) {
           console.error("Auth Load Error:", err);
           logout();
+        } finally {
+          setAuthLoading(false);
         }
+      } else {
+        setAuthLoading(false);
       }
     };
     loadUser();
@@ -46,7 +53,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ user, token, authLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

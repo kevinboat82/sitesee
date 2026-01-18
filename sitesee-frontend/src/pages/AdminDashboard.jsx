@@ -12,26 +12,34 @@ import {
 } from '@heroicons/react/24/solid';
 
 const AdminDashboard = () => {
-    const { user, logout } = useContext(AuthContext);
+    const { user, logout, authLoading } = useContext(AuthContext); // Destructure authLoading
     const navigate = useNavigate();
 
     const [stats, setStats] = useState(null);
     const [users, setUsers] = useState([]);
     const [visits, setVisits] = useState([]);
-    const [activeTab, setActiveTab] = useState('overview'); // overview, users, visits
+    const [activeTab, setActiveTab] = useState('overview');
     const [loading, setLoading] = useState(true);
 
+    // 1. Redirect if not Admin (wait for auth to finish loading first)
     useEffect(() => {
-        // Simple security check on mount (in addition to backend protection)
-        if (user && user.role !== 'ADMIN') {
-            navigate('/dashboard');
+        if (!authLoading) {
+            if (!user || user.role !== 'ADMIN') {
+                navigate('/dashboard');
+            }
         }
-    }, [user, navigate]);
+    }, [user, authLoading, navigate]);
 
+    // 2. Fetch Data (only if Admin and Auth Finished)
     useEffect(() => {
+        if (authLoading) return; // Wait
+        if (!user || user.role !== 'ADMIN') return; // Security check
+
         const fetchData = async () => {
             try {
                 const token = localStorage.getItem('token');
+                if (!token) return;
+
                 const config = { headers: { Authorization: `Bearer ${token}` } };
 
                 const statsRes = await axios.get('https://sitesee-api.onrender.com/api/admin/stats', config);
@@ -42,25 +50,22 @@ const AdminDashboard = () => {
 
                 const visitsRes = await axios.get('https://sitesee-api.onrender.com/api/admin/visits', config);
                 setVisits(visitsRes.data);
-
-                setLoading(false);
             } catch (err) {
                 console.error("Admin Fetch Error:", err);
+            } finally {
                 setLoading(false);
             }
         };
 
-        if (user && user.role === 'ADMIN') {
-            fetchData();
-        }
-    }, [user]);
+        fetchData();
+    }, [user, authLoading]);
 
     const handleLogout = () => {
         logout();
         navigate('/');
     };
 
-    if (loading) {
+    if (authLoading || loading) { // Show loader if Auth OR Data is loading
         return (
             <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
                 <div className="flex flex-col items-center gap-4">
@@ -208,8 +213,8 @@ const AdminDashboard = () => {
                                         <td className="px-6 py-4 text-white/70">{u.email}</td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2 py-1 text-xs font-bold rounded ${u.role === 'ADMIN' ? 'bg-red-500/20 text-red-400' :
-                                                    u.role === 'SCOUT' ? 'bg-amber-500/20 text-amber-400' :
-                                                        'bg-blue-500/20 text-blue-400'
+                                                u.role === 'SCOUT' ? 'bg-amber-500/20 text-amber-400' :
+                                                    'bg-blue-500/20 text-blue-400'
                                                 }`}>
                                                 {u.role}
                                             </span>
@@ -244,8 +249,8 @@ const AdminDashboard = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2 py-1 text-xs font-bold rounded uppercase ${v.status === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-400' :
-                                                    v.status === 'ASSIGNED' ? 'bg-blue-500/20 text-blue-400' :
-                                                        'bg-amber-500/20 text-amber-400'
+                                                v.status === 'ASSIGNED' ? 'bg-blue-500/20 text-blue-400' :
+                                                    'bg-amber-500/20 text-amber-400'
                                                 }`}>
                                                 {v.status || 'PENDING'}
                                             </span>

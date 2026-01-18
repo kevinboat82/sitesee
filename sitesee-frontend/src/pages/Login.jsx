@@ -13,8 +13,21 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useContext(AuthContext);
+  const { login, user, authLoading } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (user.role === 'SCOUT') {
+        navigate("/scout");
+      } else if (user.role === 'ADMIN') {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
+    }
+  }, [user, authLoading, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -29,6 +42,8 @@ const Login = () => {
 
       if (userData.role === 'SCOUT') {
         navigate("/scout");
+      } else if (userData.role === 'ADMIN') {
+        navigate("/admin");
       } else {
         navigate("/dashboard");
       }

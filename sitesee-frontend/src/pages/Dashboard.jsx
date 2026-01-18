@@ -8,16 +8,26 @@ import { ArrowRightStartOnRectangleIcon } from '@heroicons/react/24/outline';
 const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useContext(AuthContext);
+  const { logout, user, authLoading } = useContext(AuthContext); // Added user, authLoading
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [payingPropertyId, setPayingPropertyId] = useState(null);
+
+  // Redirect Admins
+  useEffect(() => {
+    if (!authLoading && user?.role === 'ADMIN') {
+      navigate('/admin');
+    }
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) return navigate('/');
+
+        // Wait for auth loading to confirm role (optional but safer)
+        if (authLoading) return;
 
         const res = await axios.get('https://sitesee-api.onrender.com/api/dashboard', {
           headers: { Authorization: `Bearer ${token}` }

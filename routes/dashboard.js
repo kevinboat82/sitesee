@@ -12,14 +12,14 @@ router.get('/', auth, async (req, res) => {
 
     // 1. Get User
     const userResult = await db.query(
-      'SELECT full_name, email FROM users WHERE id = $1',
+      'SELECT full_name, email, role FROM users WHERE id = $1',
       [req.user.id]
     );
 
     // 2. Get Properties WITH their specific subscription status
     // We use a LEFT JOIN to see if there is an ACTIVE subscription for each property
     const propsResult = await db.query(
-        `SELECT p.*, 
+      `SELECT p.*, 
                 COALESCE(s.status, 'INACTIVE') as sub_status,
                 s.end_date as sub_end_date
          FROM properties p
@@ -27,14 +27,14 @@ router.get('/', auth, async (req, res) => {
          ON p.id = s.property_id AND s.status = 'ACTIVE'
          WHERE p.user_id = $1 
          ORDER BY p.created_at DESC`,
-        [req.user.id]
+      [req.user.id]
     );
 
     // 3. Get Reports
     const reportsResult = await db.query(
-        `SELECT * FROM visit_requests WHERE property_id IN 
+      `SELECT * FROM visit_requests WHERE property_id IN 
         (SELECT id FROM properties WHERE user_id = $1)`,
-        [req.user.id]
+      [req.user.id]
     );
 
     res.json({

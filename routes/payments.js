@@ -21,22 +21,22 @@ router.post('/initialize', auth, async (req, res) => {
 
     // 2. LOGIC CHECK: Only create a Subscription row if it is NOT a visit
     if (!is_visit) {
-        await db.query(
-          `INSERT INTO subscriptions 
+      await db.query(
+        `INSERT INTO subscriptions 
            (user_id, property_id, status, plan_type, start_date, end_date, reference, paystack_sub_code)
            VALUES ($1, $2, 'PENDING', $3, NOW(), NOW() + INTERVAL '30 days', $4, $4)`,
-          [req.user.id, property_id, plan_type || 'BASIC', reference]
-        );
-        console.log(`✅ Pending Subscription Created for Ref: ${reference}`);
+        [req.user.id, property_id, plan_type || 'BASIC', reference]
+      );
+      console.log(`✅ Pending Subscription Created for Ref: ${reference}`);
     } else {
-        console.log(`✅ Visit Payment Started for Ref: ${reference}`);
+      console.log(`✅ Visit Payment Started for Ref: ${reference}`);
     }
 
     // 3. Send to Paystack (Pass Visit Data in Metadata)
     const params = JSON.stringify({
       email: email,
-      amount: amount * 100, 
-      reference: reference, 
+      amount: amount * 100,
+      reference: reference,
       callback_url: "https://sitesee-api.onrender.com/api/payments/callback",
       metadata: {
         user_id: req.user.id,
@@ -66,10 +66,10 @@ router.post('/initialize', auth, async (req, res) => {
       paystackRes.on('end', () => {
         const responseData = JSON.parse(data);
         if (responseData.status) {
-            res.json({ authorization_url: responseData.data.authorization_url });
+          res.json({ authorization_url: responseData.data.authorization_url });
         } else {
-            console.error("Paystack Init Failed:", responseData.message);
-            res.status(400).json({ error: "Payment initialization failed" });
+          console.error("Paystack Init Failed:", responseData.message);
+          res.status(400).json({ error: "Payment initialization failed" });
         }
       });
     });
@@ -105,11 +105,11 @@ router.post('/webhook', async (req, res) => {
 
   if (event.event === 'charge.success') {
     const { reference, metadata } = event.data;
-    
+
     console.log(`🔔 Webhook Received for Ref: ${reference}`); // LOG THIS!
 
     try {
-      // 2. Try updating using 'paystack_sub_code'
+      // 2. Try updating subscription using 'paystack_sub_code'
       let result = await db.query(
         `UPDATE subscriptions SET status = 'ACTIVE' WHERE paystack_sub_code = $1 RETURNING *`,
         [reference]
@@ -117,27 +117,43 @@ router.post('/webhook', async (req, res) => {
 
       // 3. Fallback: If that didn't work, try 'reference' column
       if (result.rowCount === 0) {
-           console.log("⚠️ paystack_sub_code not found, trying 'reference' column...");
-           result = await db.query(
-              `UPDATE subscriptions SET status = 'ACTIVE' WHERE reference = $1 RETURNING *`,
-              [reference]
-           );
+        console.log("⚠️ paystack_sub_code not found, trying 'reference' column...");
+        result = await db.query(
+          `UPDATE subscriptions SET status = 'ACTIVE' WHERE reference = $1 RETURNING *`,
+          [reference]
+        );
       }
 
+      // 4. If subscription was activated, auto-create first visit
       if (result.rowCount > 0) {
-          console.log('✅ Subscription Activated!');
+        console.log('✅ Subscription Activated!');
+
+        const subscription = result.rows[0];
+
+        // AUTO-CREATE INITIAL VISIT for the property
+        // Schedule it for tomorrow by default
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        await db.query(
+          `INSERT INTO visit_requests (property_id, user_id, status, scheduled_date, instructions, created_at)
+             VALUES ($1, $2, 'PENDING', $3, $4, NOW())`,
+          [subscription.property_id, subscription.user_id, tomorrow.toISOString().split('T')[0], 'Initial subscription visit - please inspect property']
+        );
+        console.log('✅ Initial Visit Job Created for Property:', subscription.property_id);
+
       } else {
-          console.error('❌ Could not find subscription to activate. Ref:', reference);
+        console.error('❌ Could not find subscription to activate. Ref:', reference);
       }
 
-      // 4. Handle "New Visit" requests (if metadata exists)
+      // 5. Handle explicit "New Visit" requests (if metadata has scheduled_date)
       if (metadata && metadata.scheduled_date) {
-           await db.query(
-            `INSERT INTO visit_requests (property_id, user_id, status, scheduled_date, instructions, created_at)
+        await db.query(
+          `INSERT INTO visit_requests (property_id, user_id, status, scheduled_date, instructions, created_at)
              VALUES ($1, $2, 'PENDING', $3, $4, NOW())`,
-            [metadata.property_id, metadata.user_id, metadata.scheduled_date, metadata.instructions || 'Paid Visit']
-          );
-          console.log('✅ Visit Job Created!');
+          [metadata.property_id, metadata.user_id, metadata.scheduled_date, metadata.instructions || 'Paid Visit']
+        );
+        console.log('✅ Scheduled Visit Job Created!');
       }
 
     } catch (err) {
@@ -148,11 +164,12 @@ router.post('/webhook', async (req, res) => {
   res.sendStatus(200);
 });
 
+
 // @route   GET /api/payments/callback
 router.get('/callback', async (req, res) => {
-    const { reference } = req.query;
-    // Redirect back to dashboard with success flag
-    res.redirect('https://sitesee-mu.vercel.app/dashboard?payment=success');
+  const { reference } = req.query;
+  // Redirect back to dashboard with success flag
+  res.redirect('https://sitesee-mu.vercel.app/dashboard?payment=success');
 });
 
 module.exports = router;

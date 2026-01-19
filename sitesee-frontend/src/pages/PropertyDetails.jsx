@@ -445,7 +445,7 @@ const PropertyDetails = () => {
                       <div className="flex items-center gap-2 flex-wrap">
                         <button
                           onClick={async () => {
-                            if (!confirm('Approve this visit? The scout will be credited GHS 25.')) return;
+                            if (!confirm('Approve these findings? Scout will be notified.')) return;
                             try {
                               const token = localStorage.getItem('token');
                               await axios.put(
@@ -453,7 +453,7 @@ const PropertyDetails = () => {
                                 {},
                                 { headers: { Authorization: `Bearer ${token}` } }
                               );
-                              alert('Visit approved! Scout has been paid.');
+                              alert('Findings approved!');
                               window.location.reload();
                             } catch (err) {
                               alert('Error approving visit');
@@ -462,7 +462,7 @@ const PropertyDetails = () => {
                           className="flex items-center gap-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-semibold transition-all"
                         >
                           <CheckCircleIcon className="h-4 w-4" />
-                          Approve & Pay
+                          Approve Scout Findings
                         </button>
                         <button
                           onClick={async () => {

@@ -79,6 +79,20 @@ const Dashboard = () => {
     fetchData();
   }, [navigate, location, authLoading]);
 
+  // Check for pending approvals
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    if (data?.reports) {
+      const count = data.reports.filter(r => r.status === 'PENDING_APPROVAL').length;
+      setPendingCount(count);
+      if (count > 0) {
+        setShowApprovalModal(true);
+      }
+    }
+  }, [data]);
+
   const handleSubscribe = async (propertyId) => {
     if (!window.confirm("Start Monthly Subscription for GHS 50?")) return;
 
@@ -435,6 +449,46 @@ const Dashboard = () => {
         <div className="absolute top-20 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl"></div>
         <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl"></div>
       </div>
+      {/* Approval Reminder Modal */}
+      {showApprovalModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <button
+            className="absolute inset-0 cursor-default"
+            onClick={() => setShowApprovalModal(false)}
+          />
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-white/10 relative overflow-hidden z-10 animate-in fade-in zoom-in duration-300">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-blue-500"></div>
+
+            <div className="text-center mb-6 mt-2">
+              <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <BellIcon className="h-8 w-8 text-purple-500 animate-bounce" />
+              </div>
+              <h3 className="text-xl font-bold dark:text-white text-gray-900 mb-2">Action Required</h3>
+              <p className="dark:text-white/60 text-gray-500">
+                You have <span className="font-bold text-purple-500">{pendingCount}</span> {pendingCount === 1 ? 'visit' : 'visits'} waiting for your approval.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowApprovalModal(false)}
+                className="flex-1 py-3 rounded-xl font-medium text-sm dark:bg-white/5 bg-gray-100 dark:text-white/60 text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
+              >
+                Remind Me Later
+              </button>
+              <button
+                onClick={() => {
+                  setShowApprovalModal(false);
+                  // Optionally navigate or just let them find it
+                }}
+                className="flex-1 py-3 rounded-xl font-bold text-sm bg-purple-600 text-white hover:bg-purple-500 shadow-lg shadow-purple-500/20 transition-all"
+              >
+                Review Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

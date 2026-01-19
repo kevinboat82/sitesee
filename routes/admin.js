@@ -143,11 +143,11 @@ router.put('/disputes/:id', auth, verifyAdmin, async (req, res) => {
             `UPDATE disputes 
              SET status = $1, 
                  resolution = COALESCE($2, resolution),
-                 resolved_by = $3,
+                 resolved_by = $3::uuid,
                  resolved_at = CASE WHEN $1 IN ('RESOLVED', 'CLOSED') THEN NOW() ELSE resolved_at END
-             WHERE id = $4
+             WHERE id = $4::uuid
              RETURNING *`,
-            [status, resolution, req.user.id, req.params.id]
+            [status, resolution || null, req.user.id, req.params.id]
         );
 
         if (update.rows.length === 0) {
@@ -157,7 +157,7 @@ router.put('/disputes/:id', auth, verifyAdmin, async (req, res) => {
         res.json({ msg: 'Dispute updated', dispute: update.rows[0] });
     } catch (err) {
         console.error('Update Dispute Error:', err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Server Error', error: err.message });
     }
 });
 

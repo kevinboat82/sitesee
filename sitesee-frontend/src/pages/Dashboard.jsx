@@ -159,14 +159,14 @@ const Dashboard = () => {
   // Loading Animation
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center">
+      <div className="min-h-screen dark:bg-slate-950 bg-gray-50 flex flex-col items-center justify-center transition-colors duration-300">
         <div className="flex gap-2 mb-6">
           <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
           <div className="w-4 h-4 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
           <div className="w-4 h-4 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
         </div>
-        <p className="text-white/60 text-sm font-medium">Loading your properties...</p>
-        <div className="mt-8 text-white/30 text-xs animate-pulse">
+        <p className="dark:text-white/60 text-gray-500 text-sm font-medium">Loading your properties...</p>
+        <div className="mt-8 dark:text-white/30 text-gray-400 text-xs animate-pulse">
           ✨ Making things beautiful for you
         </div>
       </div>
@@ -177,10 +177,10 @@ const Dashboard = () => {
   const totalCount = data?.properties?.length || 0;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white font-sans">
+    <div className="min-h-screen dark:bg-slate-950 bg-gray-50 dark:text-white text-gray-900 font-sans transition-colors duration-300">
 
       {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-slate-950/80 border-b border-white/5">
+      <header className="sticky top-0 z-50 backdrop-blur-xl dark:bg-slate-950/80 bg-white/80 dark:border-white/5 border-gray-200 border-b transition-colors duration-300">
         <div className="max-w-4xl mx-auto px-6 py-5 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <img src="/sitesee-logo.png" alt="SiteSee" className="h-10 w-auto" />
@@ -189,7 +189,7 @@ const Dashboard = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigate('/settings')}
-              className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-all duration-300 px-3 py-2 rounded-full hover:bg-white/5"
+              className="flex items-center gap-2 text-sm dark:text-white/50 text-gray-500 hover:text-blue-500 dark:hover:text-white transition-all duration-300 px-3 py-2 rounded-full dark:hover:bg-white/5 hover:bg-gray-100"
               title="Settings"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
@@ -198,15 +198,15 @@ const Dashboard = () => {
             </button>
             <button
               onClick={() => navigate('/profile')}
-              className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-all duration-300 px-3 py-2 rounded-full hover:bg-white/5"
+              className="flex items-center gap-2 text-sm dark:text-white/50 text-gray-500 hover:text-blue-500 dark:hover:text-white transition-all duration-300 px-3 py-2 rounded-full dark:hover:bg-white/5 hover:bg-gray-100"
             >
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-xs font-bold">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-xs font-bold text-white">
                 {data?.user?.full_name?.charAt(0)?.toUpperCase() || '?'}
               </div>
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-all duration-300 px-3 py-2 rounded-full hover:bg-white/5"
+              className="flex items-center gap-2 text-sm dark:text-white/50 text-gray-500 hover:text-red-500 dark:hover:text-white transition-all duration-300 px-3 py-2 rounded-full dark:hover:bg-white/5 hover:bg-gray-100"
             >
               <ArrowRightStartOnRectangleIcon className="h-4 w-4" />
               <span className="hidden sm:inline">Sign Out</span>
@@ -216,14 +216,14 @@ const Dashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-6 py-10">
+      <main className="max-w-4xl mx-auto px-6 py-10 transition-colors duration-300">
 
         {/* Greeting */}
         <div className="mb-10">
-          <h2 className="text-3xl font-bold text-white mb-2">
+          <h2 className="text-3xl font-bold dark:text-white text-gray-900 mb-2">
             Hello, {data?.user?.full_name?.split(' ')[0] || 'there'} 👋
           </h2>
-          <p className="text-white/50">
+          <p className="dark:text-white/50 text-gray-500">
             {activeCount > 0
               ? `You have ${activeCount} active ${activeCount === 1 ? 'property' : 'properties'} being monitored.`
               : "Let's get your properties monitored."}
@@ -232,17 +232,17 @@ const Dashboard = () => {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-3 gap-4 mb-10">
-          <div className="bg-white/5 rounded-2xl p-5 border border-white/5">
-            <p className="text-3xl font-bold text-white">{totalCount}</p>
-            <p className="text-sm text-white/40 mt-1">Total Properties</p>
+          <div className="dark:bg-white/5 bg-white rounded-2xl p-5 border dark:border-white/5 border-gray-200 shadow-sm transition-colors duration-300">
+            <p className="text-3xl font-bold dark:text-white text-gray-900">{totalCount}</p>
+            <p className="text-sm dark:text-white/40 text-gray-500 mt-1">Total Properties</p>
           </div>
           <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/10 rounded-2xl p-5 border border-blue-500/20">
-            <p className="text-3xl font-bold text-blue-400">{activeCount}</p>
-            <p className="text-sm text-white/40 mt-1">Active Plans</p>
+            <p className="text-3xl font-bold text-blue-500">{activeCount}</p>
+            <p className="text-sm dark:text-white/40 text-gray-500 mt-1">Active Plans</p>
           </div>
-          <div className="bg-white/5 rounded-2xl p-5 border border-white/5">
-            <p className="text-3xl font-bold text-white">{activities.length}</p>
-            <p className="text-sm text-white/40 mt-1">Recent Updates</p>
+          <div className="dark:bg-white/5 bg-white rounded-2xl p-5 border dark:border-white/5 border-gray-200 shadow-sm transition-colors duration-300">
+            <p className="text-3xl font-bold dark:text-white text-gray-900">{activities.length}</p>
+            <p className="text-sm dark:text-white/40 text-gray-500 mt-1">Recent Updates</p>
           </div>
         </div>
 

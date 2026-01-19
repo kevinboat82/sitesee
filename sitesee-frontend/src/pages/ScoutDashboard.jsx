@@ -4,9 +4,9 @@ import { AuthContext } from "../context/AuthContext";
 import {
   MapPinIcon, CameraIcon, CheckCircleIcon, ArrowPathIcon,
   ClockIcon, BanknotesIcon, TrophyIcon, ChartBarIcon,
-  DocumentTextIcon, ExclamationTriangleIcon
+  DocumentTextIcon, ExclamationTriangleIcon, ShieldCheckIcon
 } from "@heroicons/react/24/solid";
-import { ArrowRightStartOnRectangleIcon, ChevronDownIcon, StarIcon } from "@heroicons/react/24/outline";
+import { ArrowRightStartOnRectangleIcon, ChevronDownIcon, StarIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 
 const ScoutDashboard = () => {
@@ -31,6 +31,10 @@ const ScoutDashboard = () => {
   // Wallet state
   const [wallet, setWallet] = useState({ provider: '', number: '' });
   const [walletSaving, setWalletSaving] = useState(false);
+
+  // Authorization Letter Modal
+  const [authModal, setAuthModal] = useState({ open: false, letter: null });
+  const [loadingAuth, setLoadingAuth] = useState(false);
 
   // Fetch Jobs
   const fetchJobs = async (showRefresh = false) => {
@@ -371,7 +375,7 @@ const ScoutDashboard = () => {
                       </div>
 
                       {/* Quick Actions */}
-                      <div className="flex gap-2 mb-4">
+                      <div className="flex gap-2 mb-4 flex-wrap">
                         {job.google_maps_link && (
                           <a
                             href={job.google_maps_link}
@@ -380,15 +384,44 @@ const ScoutDashboard = () => {
                             className="flex-1 py-2.5 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-xl text-center text-sm font-medium text-blue-400 transition-all flex items-center justify-center gap-2"
                           >
                             <MapPinIcon className="h-4 w-4" />
-                            Start Navigation
+                            Navigate
                           </a>
                         )}
                         <button
-                          className="px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm text-white/60 hover:text-white transition-all flex items-center gap-2"
-                          onClick={() => alert('Feature: Report issue - Coming soon!')}
+                          className="px-4 py-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 rounded-xl text-sm text-emerald-400 transition-all flex items-center gap-2"
+                          onClick={async () => {
+                            setLoadingAuth(true);
+                            try {
+                              const res = await api.get(`/scouts/jobs/${job.id}/authorization`);
+                              setAuthModal({ open: true, letter: res.data });
+                            } catch (err) {
+                              alert('Could not load authorization letter');
+                            } finally {
+                              setLoadingAuth(false);
+                            }
+                          }}
+                          disabled={loadingAuth}
+                        >
+                          <ShieldCheckIcon className="h-4 w-4" />
+                          Show Auth
+                        </button>
+                        <button
+                          className="px-4 py-2.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-xl text-sm text-red-400 transition-all flex items-center gap-2"
+                          onClick={async () => {
+                            const reason = prompt('Why are you aborting this mission?\n\nValid reasons:\n- Hostile/threatening people at location\n- "Keep Off" or warning signs\n- Unsafe environment\n- Other safety concern');
+                            if (!reason) return;
+                            if (!confirm('Are you sure you want to abort? You will receive GHS 10 show-up fee.')) return;
+                            try {
+                              await api.post(`/scouts/jobs/${job.id}/abort`, { reason });
+                              alert('Mission aborted. GHS 10 show-up fee credited.');
+                              fetchJobs(true);
+                            } catch (err) {
+                              alert('Error aborting mission');
+                            }
+                          }}
                         >
                           <ExclamationTriangleIcon className="h-4 w-4" />
-                          Report Issue
+                          Abort
                         </button>
                       </div>
 
@@ -639,6 +672,70 @@ const ScoutDashboard = () => {
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl"></div>
       </div>
+
+      {/* Authorization Letter Modal */}
+      {authModal.open && authModal.letter && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md relative max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setAuthModal({ open: false, letter: null })}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition"
+            >
+              <XMarkIcon className="h-6 w-6" />
+            </button>
+
+            {/* Official Header */}
+            <div className="text-center mb-6 border-b pb-4">
+              <h2 className="text-2xl font-bold text-gray-900">SiteSee</h2>
+              <p className="text-sm text-gray-500">Property Monitoring Services</p>
+              <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">
+                <ShieldCheckIcon className="h-4 w-4" />
+                OFFICIAL AUTHORIZATION
+              </div>
+            </div>
+
+            {/* Letter Content */}
+            <div className="text-gray-700 space-y-4">
+              <h3 className="text-lg font-bold text-center text-gray-900">LETTER OF AUTHORITY</h3>
+
+              <p className="text-sm leading-relaxed">
+                I, <span className="font-bold text-gray-900">{authModal.letter.ownerName}</span>, owner of the property known as
+                <span className="font-bold text-gray-900"> "{authModal.letter.propertyName}"</span> located at:
+              </p>
+
+              <div className="bg-gray-100 rounded-lg p-3 text-sm font-medium text-gray-800">
+                📍 {authModal.letter.propertyAddress}
+              </div>
+
+              <p className="text-sm leading-relaxed">
+                hereby authorize <span className="font-bold text-amber-600">{authModal.letter.scoutName}</span> from
+                <span className="font-bold"> SiteSee Property Monitoring</span> to enter the premises and take
+                photographs/videos for monitoring purposes.
+              </p>
+
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-gray-500 text-xs">Date Issued</p>
+                  <p className="font-semibold text-gray-900">{authModal.letter.date}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-gray-500 text-xs">Owner Contact</p>
+                  <p className="font-semibold text-gray-900">{authModal.letter.ownerPhone}</p>
+                </div>
+              </div>
+
+              <div className="border-t pt-4 mt-4">
+                <p className="text-xs text-gray-500 text-center">
+                  Visit ID: {authModal.letter.visitId?.slice(0, 8)}... | Scheduled: {new Date(authModal.letter.scheduledDate).toLocaleDateString()}
+                </p>
+                <p className="text-xs text-gray-400 text-center mt-1">
+                  Verify at sitesee.app or call +233 XX XXX XXXX
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

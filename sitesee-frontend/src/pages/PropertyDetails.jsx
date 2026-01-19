@@ -56,6 +56,9 @@ const PropertyDetails = () => {
   const [disputeDescription, setDisputeDescription] = useState('');
   const [submittingDispute, setSubmittingDispute] = useState(false);
 
+  // Land Dispute Disclaimer
+  const [disputeConfirmed, setDisputeConfirmed] = useState(false);
+
   useEffect(() => {
     const fetchDetails = async () => {
       try {
@@ -618,9 +621,26 @@ const PropertyDetails = () => {
                 />
               </div>
 
+              {/* Land Dispute Disclaimer */}
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={disputeConfirmed}
+                    onChange={(e) => setDisputeConfirmed(e.target.checked)}
+                    className="mt-1 w-5 h-5 rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500"
+                    required
+                  />
+                  <span className="text-xs text-white/70 leading-relaxed">
+                    <strong className="text-red-400">⚠️ Safety Declaration:</strong> I confirm that this property is NOT currently involved in a violent dispute or guarded by hostile parties.
+                    I accept liability if the Scout is threatened due to undisclosed disputes.
+                  </span>
+                </label>
+              </div>
+
               <button
                 type="submit"
-                disabled={requestLoading}
+                disabled={requestLoading || !disputeConfirmed}
                 className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all"
               >
                 {requestLoading ? 'Processing...' : 'Confirm & Pay GHS 50'}

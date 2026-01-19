@@ -402,4 +402,103 @@ router.put('/wallet', auth, verifyScout, async (req, res) => {
   }
 });
 
+// @route   GET /api/scouts/jobs/:id/authorization
+// @desc    Get Letter of Authority for a claimed job
+router.get('/jobs/:id/authorization', auth, verifyScout, async (req, res) => {
+  try {
+    const job = await db.query(`
+      SELECT vr.*, p.name as property_name, p.address, 
+             owner.full_name as owner_name, owner.phone_number as owner_phone
+      FROM visit_requests vr
+      JOIN properties p ON vr.property_id = p.id
+      JOIN users owner ON p.user_id = owner.id
+      WHERE vr.id = $1 AND vr.assigned_scout_id = $2
+    `, [req.params.id, req.user.id]);
+
+    if (job.rows.length === 0) {
+      return res.status(404).json({ msg: 'Job not found or not assigned to you' });
+    }
+
+    const visit = job.rows[0];
+    const scout = await db.query('SELECT full_name FROM users WHERE id = $1', [req.user.id]);
+
+    const letter = {
+      ownerName: visit.owner_name,
+      propertyAddress: visit.address,
+      propertyName: visit.property_name,
+      scoutName: scout.rows[0]?.full_name || 'SiteSee Scout',
+      date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+      ownerPhone: visit.owner_phone || 'Contact via SiteSee App',
+      visitId: visit.id,
+      scheduledDate: visit.scheduled_date
+    };
+
+    res.json(letter);
+  } catch (err) {
+    console.error('Auth Letter Error:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST /api/scouts/jobs/:id/abort
+// @desc    Scout aborts mission due to safety concerns (gets show-up fee)
+router.post('/jobs/:id/abort', auth, verifyScout, async (req, res) => {
+  const { reason } = req.body;
+
+  if (!reason) {
+    return res.status(400).json({ msg: 'Please provide a reason for aborting' });
+  }
+
+  try {
+    // Verify the job is assigned to this scout
+    const job = await db.query(
+      `SELECT * FROM visit_requests WHERE id = $1 AND assigned_scout_id = $2 AND status = 'ASSIGNED'`,
+      [req.params.id, req.user.id]
+    );
+
+    if (job.rows.length === 0) {
+      return res.status(404).json({ msg: 'Job not found or not assigned to you' });
+    }
+
+    // Mark job as aborted with reason
+    await db.query(
+      `UPDATE visit_requests 
+       SET status = 'ABORTED', 
+           abort_reason = $2,
+           aborted_at = NOW()
+       WHERE id = $1`,
+      [req.params.id, reason]
+    );
+
+    // Give scout a partial "show-up fee" (GHS 10)
+    await db.query(
+      `INSERT INTO scout_earnings (scout_id, visit_id, amount, status, notes)
+       VALUES ($1, $2, 10.00, 'COMPLETED', 'Show-up fee for aborted mission')`,
+      [req.user.id, req.params.id]
+    );
+
+    // Notify property owner
+    const visit = job.rows[0];
+    const { createActivity } = require('./activity');
+    const prop = await db.query('SELECT name, user_id FROM properties WHERE id = $1', [visit.property_id]);
+    if (prop.rows[0]) {
+      await createActivity(
+        prop.rows[0].user_id,
+        visit.property_id,
+        'VISIT_ABORTED',
+        'Visit Aborted - Safety Concern',
+        `Scout aborted visit to "${prop.rows[0].name}" due to: ${reason}. Please review property safety status.`
+      );
+    }
+
+    res.json({
+      msg: 'Mission aborted. You have been credited GHS 10 show-up fee.',
+      showUpFee: 10.00
+    });
+  } catch (err) {
+    console.error('Abort Mission Error:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 module.exports = router;

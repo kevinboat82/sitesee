@@ -193,13 +193,23 @@ const ScoutDashboard = () => {
               Welcome back, {user?.full_name?.split(' ')[0] || 'Scout'}
             </p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors duration-300 px-3 py-2 rounded-full hover:bg-white/10"
-          >
-            <ArrowRightStartOnRectangleIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Sign Out</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/profile')}
+              className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors duration-300 px-2 py-2 rounded-full hover:bg-white/10"
+            >
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-orange-400 flex items-center justify-center text-xs font-bold">
+                {user?.full_name?.charAt(0)?.toUpperCase() || '?'}
+              </div>
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors duration-300 px-3 py-2 rounded-full hover:bg-white/10"
+            >
+              <ArrowRightStartOnRectangleIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -274,8 +284,8 @@ const ScoutDashboard = () => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${activeTab === tab.id
-                  ? 'bg-white text-black'
-                  : 'text-white/50 hover:text-white hover:bg-white/10'
+                ? 'bg-white text-black'
+                : 'text-white/50 hover:text-white hover:bg-white/10'
                 }`}
             >
               {tab.label}
@@ -462,8 +472,8 @@ const ScoutDashboard = () => {
                             onClick={() => handleUpload(job.id)}
                             disabled={uploadingId === job.id}
                             className={`w-full py-4 rounded-xl font-bold text-sm flex justify-center items-center gap-2.5 transition-all duration-300 ${uploadingId === job.id
-                                ? 'bg-white/10 text-white/50 cursor-wait'
-                                : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-500/20'
+                              ? 'bg-white/10 text-white/50 cursor-wait'
+                              : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-500/20'
                               }`}
                           >
                             {uploadingId === job.id ? (

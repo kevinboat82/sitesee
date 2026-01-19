@@ -192,13 +192,23 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-all duration-300 px-4 py-2 rounded-full hover:bg-white/5"
-          >
-            <ArrowRightStartOnRectangleIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Sign Out</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/profile')}
+              className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-all duration-300 px-3 py-2 rounded-full hover:bg-white/5"
+            >
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-xs font-bold">
+                {data?.user?.full_name?.charAt(0)?.toUpperCase() || '?'}
+              </div>
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-all duration-300 px-3 py-2 rounded-full hover:bg-white/5"
+            >
+              <ArrowRightStartOnRectangleIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -243,8 +253,8 @@ const Dashboard = () => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${activeTab === tab.id
-                  ? 'bg-white text-slate-900'
-                  : 'text-white/50 hover:text-white hover:bg-white/10'
+                ? 'bg-white text-slate-900'
+                : 'text-white/50 hover:text-white hover:bg-white/10'
                 }`}
             >
               <tab.icon className="h-4 w-4" />

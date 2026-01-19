@@ -30,6 +30,7 @@ app.use('/api/scouts', scoutRoutes);
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/activity', activityRoutes);
+app.use('/api/profile', require('./routes/profile'));
 
 // Basic Route to Test
 app.get('/', (req, res) => {

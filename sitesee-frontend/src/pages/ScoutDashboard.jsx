@@ -642,6 +642,14 @@ const ScoutDashboard = () => {
                       <p className="text-xs text-white/40">
                         {new Date(job.completed_at).toLocaleDateString()}
                       </p>
+                      <div className="mt-1">
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${job.status === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-400' :
+                            job.status === 'PENDING_APPROVAL' ? 'bg-purple-500/20 text-purple-400' :
+                              'bg-white/10 text-white/50'
+                          }`}>
+                          {job.status === 'PENDING_APPROVAL' ? 'Pending Review' : job.status}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   {job.scout_notes && (

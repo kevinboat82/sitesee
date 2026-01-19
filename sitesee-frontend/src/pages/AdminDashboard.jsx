@@ -342,10 +342,14 @@ const AdminDashboard = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2 py-1 text-xs font-bold rounded uppercase ${v.status === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-400' :
-                                                v.status === 'ASSIGNED' ? 'bg-blue-500/20 text-blue-400' :
-                                                    'bg-amber-500/20 text-amber-400'
+                                                    v.status === 'ASSIGNED' ? 'bg-blue-500/20 text-blue-400' :
+                                                        v.status === 'PENDING_APPROVAL' ? 'bg-purple-500/20 text-purple-400' :
+                                                            v.status === 'REVISION_REQUESTED' ? 'bg-orange-500/20 text-orange-400' :
+                                                                v.status === 'ABORTED' ? 'bg-red-500/20 text-red-500' :
+                                                                    v.status === 'CANCELLED' ? 'bg-gray-500/20 text-gray-400' :
+                                                                        'bg-amber-500/20 text-amber-400'
                                                 }`}>
-                                                {v.status || 'PENDING'}
+                                                {v.status?.replace('_', ' ') || 'PENDING'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">

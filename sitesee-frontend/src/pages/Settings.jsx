@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { ThemeContext } from '../context/ThemeContext';
 import api from '../api';
 import {
     UserCircleIcon,
@@ -19,6 +20,7 @@ import {
 
 const Settings = () => {
     const { user, logout } = useContext(AuthContext);
+    const { darkMode, toggleDarkMode } = useContext(ThemeContext);
     const navigate = useNavigate();
 
     // Profile State
@@ -30,9 +32,6 @@ const Settings = () => {
     });
     const [saving, setSaving] = useState(false);
     const [editingProfile, setEditingProfile] = useState(false);
-
-    // Appearance State
-    const [darkMode, setDarkMode] = useState(true);
 
     // Notification Settings
     const [notifications, setNotifications] = useState({
@@ -72,13 +71,6 @@ const Settings = () => {
         } finally {
             setSaving(false);
         }
-    };
-
-    // Toggle dark mode
-    const toggleDarkMode = () => {
-        setDarkMode(!darkMode);
-        // In a real app, you'd persist this to localStorage/database
-        localStorage.setItem('darkMode', !darkMode);
     };
 
     // Determine if user is a scout

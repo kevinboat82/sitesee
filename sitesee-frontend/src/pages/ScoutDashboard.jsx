@@ -44,10 +44,19 @@ const ScoutDashboard = () => {
   const handleClaimJob = async (jobId) => {
     setClaimingJob(prev => ({ ...prev, [jobId]: true }));
     try {
-      await api.put(`/scouts/jobs/${jobId}/claim`);
+      const res = await api.put(`/scouts/jobs/${jobId}/claim`);
       setClaimedJobs(prev => ({ ...prev, [jobId]: true }));
+      // If already claimed by this user, just mark as claimed
+      if (res.data.alreadyClaimed) {
+        console.log('Job was already claimed by you');
+      }
     } catch (err) {
-      alert(err.response?.data?.msg || 'Failed to claim job. It may have been claimed by another scout.');
+      const errorMsg = err.response?.data?.msg || 'Failed to claim job';
+      alert(errorMsg);
+      // If job is no longer available, refresh the list
+      if (err.response?.status === 400 || err.response?.status === 404) {
+        fetchJobs(true);
+      }
     } finally {
       setClaimingJob(prev => ({ ...prev, [jobId]: false }));
     }

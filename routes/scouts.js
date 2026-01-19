@@ -203,35 +203,56 @@ router.put('/jobs/:id/claim', auth, verifyScout, async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    // Lock the row to prevent race conditions (FOR UPDATE)
-    const checkJob = await client.query(
-      `SELECT * FROM visit_requests 
-       WHERE id = $1 AND status = 'PENDING'
-       FOR UPDATE`,
+    // First check if job exists at all
+    const jobExists = await client.query(
+      `SELECT id, status, assigned_scout_id FROM visit_requests WHERE id = $1`,
       [req.params.id]
     );
 
-    if (checkJob.rows.length === 0) {
+    if (jobExists.rows.length === 0) {
       await client.query('ROLLBACK');
-      return res.status(400).json({ msg: 'Job not found or already taken by another scout' });
+      return res.status(404).json({ msg: 'Job not found' });
     }
 
-    // Calculate claim expiration (4 hours from now)
+    const currentJob = jobExists.rows[0];
+    console.log(`Claim attempt - Job ID: ${req.params.id}, Status: ${currentJob.status}, Scout: ${req.user.id}`);
+
+    // Check if job is already claimed by someone
+    if (currentJob.status === 'ASSIGNED' && currentJob.assigned_scout_id) {
+      await client.query('ROLLBACK');
+      if (currentJob.assigned_scout_id === req.user.id) {
+        return res.status(200).json({ msg: 'You have already claimed this job', alreadyClaimed: true });
+      }
+      return res.status(400).json({ msg: 'This job has already been claimed by another scout' });
+    }
+
+    // Check if status is PENDING
+    if (currentJob.status !== 'PENDING') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ msg: `Cannot claim job - current status is ${currentJob.status}` });
+    }
+
+    // Lock and claim the job
     const claimExpiresAt = new Date(Date.now() + JOB_CLAIM_HOURS * 60 * 60 * 1000);
 
-    // Claim the job with timer
     const job = await client.query(
       `UPDATE visit_requests 
        SET status = 'ASSIGNED', 
            assigned_scout_id = $1,
            claimed_at = NOW(),
            claim_expires_at = $2
-       WHERE id = $3
+       WHERE id = $3 AND status = 'PENDING'
        RETURNING *`,
       [req.user.id, claimExpiresAt, req.params.id]
     );
 
+    if (job.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ msg: 'Failed to claim job - it may have just been taken' });
+    }
+
     await client.query('COMMIT');
+    console.log(`✅ Job ${req.params.id} claimed by scout ${req.user.id}`);
 
     res.json({
       msg: 'Job claimed successfully!',
@@ -242,7 +263,7 @@ router.put('/jobs/:id/claim', auth, verifyScout, async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Claim Error:', err.message);
-    res.status(500).send('Server Error');
+    res.status(500).json({ msg: 'Server error while claiming job', error: err.message });
   } finally {
     client.release();
   }

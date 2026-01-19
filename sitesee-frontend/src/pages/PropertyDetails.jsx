@@ -422,9 +422,14 @@ const PropertyDetails = () => {
                         })}
                       </h4>
                       <div className="flex items-center gap-2 text-sm flex-wrap">
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${visit.status === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${visit.status === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-400' :
+                          visit.status === 'PENDING_APPROVAL' ? 'bg-blue-500/20 text-blue-400' :
+                            visit.status === 'REVISION_REQUESTED' ? 'bg-red-500/20 text-red-400' :
+                              'bg-amber-500/20 text-amber-400'
                           }`}>
-                          {visit.status || 'PENDING'}
+                          {visit.status === 'PENDING_APPROVAL' ? '⏳ Awaiting Approval' :
+                            visit.status === 'REVISION_REQUESTED' ? '🔄 Revision Needed' :
+                              visit.status || 'PENDING'}
                         </span>
                         {visit.scout_name && (
                           <span className="text-white/40">by {visit.scout_name}</span>
@@ -432,7 +437,55 @@ const PropertyDetails = () => {
                       </div>
                     </div>
 
-                    {/* Rating & Actions */}
+                    {/* Approval Actions for PENDING_APPROVAL */}
+                    {visit.status === 'PENDING_APPROVAL' && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          onClick={async () => {
+                            if (!confirm('Approve this visit? The scout will be credited GHS 25.')) return;
+                            try {
+                              const token = localStorage.getItem('token');
+                              await axios.put(
+                                `https://sitesee-api.onrender.com/api/properties/${id}/visits/${visit.id}/approve`,
+                                {},
+                                { headers: { Authorization: `Bearer ${token}` } }
+                              );
+                              alert('Visit approved! Scout has been paid.');
+                              window.location.reload();
+                            } catch (err) {
+                              alert('Error approving visit');
+                            }
+                          }}
+                          className="flex items-center gap-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-semibold transition-all"
+                        >
+                          <CheckCircleIcon className="h-4 w-4" />
+                          Approve & Pay
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const reason = prompt('What changes are needed?');
+                            if (!reason) return;
+                            try {
+                              const token = localStorage.getItem('token');
+                              await axios.put(
+                                `https://sitesee-api.onrender.com/api/properties/${id}/visits/${visit.id}/reject`,
+                                { reason },
+                                { headers: { Authorization: `Bearer ${token}` } }
+                              );
+                              alert('Revision requested. Scout will be notified.');
+                              window.location.reload();
+                            } catch (err) {
+                              alert('Error requesting revision');
+                            }
+                          }}
+                          className="flex items-center gap-1 px-4 py-2 bg-white/10 hover:bg-white/15 text-white/70 rounded-xl text-sm font-medium transition-all"
+                        >
+                          Request Changes
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Rating & Actions for COMPLETED */}
                     {visit.status === 'COMPLETED' && (
                       <div className="flex items-center gap-2 flex-wrap">
                         {visit.client_rating ? (

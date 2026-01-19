@@ -273,4 +273,108 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
+// @route   PUT /api/properties/:id/visits/:visitId/approve
+// @desc    Client approves the visit - scout gets paid
+router.put('/:id/visits/:visitId/approve', auth, async (req, res) => {
+  try {
+    // Verify ownership
+    const property = await db.query(
+      'SELECT * FROM properties WHERE id = $1 AND user_id = $2',
+      [req.params.id, req.user.id]
+    );
+
+    if (property.rows.length === 0) {
+      return res.status(403).json({ msg: 'Not authorized' });
+    }
+
+    // Update visit status to COMPLETED
+    const result = await db.query(
+      `UPDATE visit_requests 
+       SET status = 'COMPLETED', approved_at = NOW(), approved_by = $2
+       WHERE id = $1 AND property_id = $3 AND status = 'PENDING_APPROVAL'
+       RETURNING *`,
+      [req.params.visitId, req.user.id, req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ msg: 'Visit not found or already processed' });
+    }
+
+    const visit = result.rows[0];
+
+    // Mark scout's earnings as approved/paid
+    await db.query(
+      `UPDATE scout_earnings SET status = 'COMPLETED' WHERE visit_id = $1`,
+      [req.params.visitId]
+    );
+
+    // Create activity for scout
+    if (visit.assigned_scout_id) {
+      const { createActivity } = require('./activity');
+      await createActivity(
+        visit.assigned_scout_id,
+        req.params.id,
+        'VISIT_APPROVED',
+        'Job Approved!',
+        `Your submission has been approved by the client. GHS 25 has been credited.`
+      );
+    }
+
+    res.json({ msg: 'Visit approved! Scout payment credited.', visit: result.rows[0] });
+  } catch (err) {
+    console.error('Approve Visit Error:', err.message);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
+  }
+});
+
+// @route   PUT /api/properties/:id/visits/:visitId/reject
+// @desc    Client requests changes - scout must re-submit
+router.put('/:id/visits/:visitId/reject', auth, async (req, res) => {
+  try {
+    const { reason } = req.body;
+
+    // Verify ownership
+    const property = await db.query(
+      'SELECT * FROM properties WHERE id = $1 AND user_id = $2',
+      [req.params.id, req.user.id]
+    );
+
+    if (property.rows.length === 0) {
+      return res.status(403).json({ msg: 'Not authorized' });
+    }
+
+    // Update visit status to REVISION_REQUESTED
+    const result = await db.query(
+      `UPDATE visit_requests 
+       SET status = 'REVISION_REQUESTED', rejection_reason = $2
+       WHERE id = $1 AND property_id = $3 AND status = 'PENDING_APPROVAL'
+       RETURNING *`,
+      [req.params.visitId, reason || 'Changes requested by client', req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ msg: 'Visit not found or already processed' });
+    }
+
+    const visit = result.rows[0];
+
+    // Notify scout
+    if (visit.assigned_scout_id) {
+      const { createActivity } = require('./activity');
+      await createActivity(
+        visit.assigned_scout_id,
+        req.params.id,
+        'VISIT_REJECTED',
+        'Revision Requested',
+        `Client requested changes: ${reason || 'Please review and re-submit.'}`
+      );
+    }
+
+    res.json({ msg: 'Revision requested. Scout will be notified.', visit: result.rows[0] });
+  } catch (err) {
+    console.error('Reject Visit Error:', err.message);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
+  }
+});
+
 module.exports = router;

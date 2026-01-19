@@ -270,10 +270,10 @@ router.post('/jobs/:id/complete', auth, upload.array('media', 10), async (req, r
       );
     }
 
-    // 2. Mark Job as COMPLETED with notes
+    // 2. Mark Job as PENDING_APPROVAL (client must approve before scout is paid)
     const completedJob = await db.query(
       `UPDATE visit_requests 
-         SET status = 'COMPLETED', 
+         SET status = 'PENDING_APPROVAL', 
              completed_at = NOW(),
              scout_notes = $2,
              assigned_scout_id = COALESCE(assigned_scout_id, $3)
@@ -308,9 +308,9 @@ router.post('/jobs/:id/complete', auth, upload.array('media', 10), async (req, r
         await createActivity(
           prop.rows[0].user_id,
           job.property_id,
-          'VISIT_COMPLETED',
-          'Visit Completed',
-          `Your property "${prop.rows[0].name}" has been inspected. ${req.files.length} photos/videos uploaded.`
+          'VISIT_PENDING_APPROVAL',
+          'Visit Ready for Review',
+          `Your property "${prop.rows[0].name}" has been inspected. ${req.files.length} photos/videos uploaded. Please review and approve.`
         );
       }
     }

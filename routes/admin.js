@@ -139,15 +139,18 @@ router.put('/disputes/:id', auth, verifyAdmin, async (req, res) => {
             return res.status(400).json({ msg: 'Invalid status' });
         }
 
+        // Calculate resolved_at in JS to avoid type inference issues
+        const isResolved = status === 'RESOLVED' || status === 'CLOSED';
+
         const update = await db.query(
             `UPDATE disputes 
-             SET status = $1, 
+             SET status = $1::text, 
                  resolution = COALESCE($2, resolution),
                  resolved_by = $3::uuid,
-                 resolved_at = CASE WHEN $1 IN ('RESOLVED', 'CLOSED') THEN NOW() ELSE resolved_at END
+                 resolved_at = CASE WHEN $5 THEN NOW() ELSE resolved_at END
              WHERE id = $4::uuid
              RETURNING *`,
-            [status, resolution || null, req.user.id, req.params.id]
+            [status, resolution || null, req.user.id, req.params.id, isResolved]
         );
 
         if (update.rows.length === 0) {

@@ -11,6 +11,7 @@ import ScoutSignup from './pages/ScoutSignup';
 import ScoutLogin from "./pages/ScoutLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route path="/scout-join" element={<ScoutSignup />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/:id" element={<Profile />} />
+          <Route path="/settings" element={<Settings />} />
         </Routes>
       </Router>
     </AuthProvider>

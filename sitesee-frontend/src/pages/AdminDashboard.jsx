@@ -9,7 +9,9 @@ import {
     BuildingOfficeIcon,
     ArrowRightStartOnRectangleIcon,
     ChartBarIcon,
-    ExclamationTriangleIcon
+    ExclamationTriangleIcon,
+    Bars3Icon,
+    XMarkIcon
 } from '@heroicons/react/24/solid';
 
 const AdminDashboard = () => {
@@ -25,6 +27,7 @@ const AdminDashboard = () => {
     const [resolveModal, setResolveModal] = useState({ open: false, dispute: null });
     const [resolution, setResolution] = useState('');
     const [resolving, setResolving] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     // 1. Redirect if not Admin (wait for auth to finish loading first)
     useEffect(() => {
@@ -142,11 +145,80 @@ const AdminDashboard = () => {
                 </div>
             </aside>
 
-            {/* Mobile Header (Visible on small screens) */}
-            {/* ... skipping for brevity, can add if needed ... */}
+            {/* Mobile Header */}
+            <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-slate-900 border-b border-white/5 px-4 py-3 flex items-center justify-between">
+                <h1 className="text-lg font-bold tracking-tight text-white">
+                    <span className="text-blue-500">SiteSee</span> Admin
+                </h1>
+                <button
+                    onClick={() => setMobileMenuOpen(true)}
+                    className="p-2 hover:bg-white/10 rounded-lg transition-all"
+                >
+                    <Bars3Icon className="h-6 w-6 text-white" />
+                </button>
+            </div>
+
+            {/* Mobile Menu Drawer */}
+            {mobileMenuOpen && (
+                <div className="md:hidden fixed inset-0 z-50">
+                    <div className="absolute inset-0 bg-black/60" onClick={() => setMobileMenuOpen(false)} />
+                    <div className="absolute right-0 top-0 bottom-0 w-64 bg-slate-900 border-l border-white/5 flex flex-col">
+                        <div className="p-4 border-b border-white/5 flex items-center justify-between">
+                            <h2 className="text-lg font-bold text-white">Menu</h2>
+                            <button onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-white/10 rounded-lg">
+                                <XMarkIcon className="h-5 w-5 text-white" />
+                            </button>
+                        </div>
+                        <nav className="flex-1 p-4 space-y-2">
+                            <button
+                                onClick={() => { setActiveTab('overview'); setMobileMenuOpen(false); }}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'overview' ? 'bg-blue-600 text-white' : 'text-white/50 hover:bg-white/5 hover:text-white'}`}
+                            >
+                                <ChartBarIcon className="h-5 w-5" />
+                                Overview
+                            </button>
+                            <button
+                                onClick={() => { setActiveTab('users'); setMobileMenuOpen(false); }}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'users' ? 'bg-blue-600 text-white' : 'text-white/50 hover:bg-white/5 hover:text-white'}`}
+                            >
+                                <UsersIcon className="h-5 w-5" />
+                                Users
+                            </button>
+                            <button
+                                onClick={() => { setActiveTab('visits'); setMobileMenuOpen(false); }}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'visits' ? 'bg-blue-600 text-white' : 'text-white/50 hover:bg-white/5 hover:text-white'}`}
+                            >
+                                <ClipboardDocumentCheckIcon className="h-5 w-5" />
+                                Visits
+                            </button>
+                            <button
+                                onClick={() => { setActiveTab('disputes'); setMobileMenuOpen(false); }}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'disputes' ? 'bg-red-600 text-white' : 'text-white/50 hover:bg-white/5 hover:text-white'}`}
+                            >
+                                <ExclamationTriangleIcon className="h-5 w-5" />
+                                Disputes
+                                {disputes.filter(d => d.status === 'OPEN').length > 0 && (
+                                    <span className="ml-auto px-2 py-0.5 text-xs bg-red-500 text-white rounded-full">
+                                        {disputes.filter(d => d.status === 'OPEN').length}
+                                    </span>
+                                )}
+                            </button>
+                        </nav>
+                        <div className="p-4 border-t border-white/5">
+                            <button
+                                onClick={handleLogout}
+                                className="w-full flex items-center gap-2 px-4 py-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
+                            >
+                                <ArrowRightStartOnRectangleIcon className="h-5 w-5" />
+                                Sign Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Main Content */}
-            <main className="flex-1 overflow-y-auto p-8">
+            <main className="flex-1 overflow-y-auto p-4 md:p-8 pt-16 md:pt-8">
 
                 {/* Header */}
                 <header className="flex justify-between items-center mb-8">
@@ -154,6 +226,7 @@ const AdminDashboard = () => {
                         {activeTab === 'overview' && 'Dashboard Overview'}
                         {activeTab === 'users' && 'User Management'}
                         {activeTab === 'visits' && 'All Visit Requests'}
+                        {activeTab === 'disputes' && 'Dispute Management'}
                     </h2>
                     <div className="text-sm text-white/50">
                         Logged in as <span className="text-white font-medium">{user?.email}</span>
@@ -319,9 +392,9 @@ const AdminDashboard = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2 py-1 text-xs font-bold rounded uppercase ${d.status === 'RESOLVED' ? 'bg-emerald-500/20 text-emerald-400' :
-                                                    d.status === 'CLOSED' ? 'bg-white/10 text-white/50' :
-                                                        d.status === 'IN_REVIEW' ? 'bg-blue-500/20 text-blue-400' :
-                                                            'bg-red-500/20 text-red-400'
+                                                d.status === 'CLOSED' ? 'bg-white/10 text-white/50' :
+                                                    d.status === 'IN_REVIEW' ? 'bg-blue-500/20 text-blue-400' :
+                                                        'bg-red-500/20 text-red-400'
                                                 }`}>
                                                 {d.status}
                                             </span>

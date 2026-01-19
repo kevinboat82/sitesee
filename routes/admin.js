@@ -85,4 +85,101 @@ router.get('/visits', auth, verifyAdmin, async (req, res) => {
     }
 });
 
+// @route   GET /api/admin/disputes
+// @desc    Get all disputes for admin review
+router.get('/disputes', auth, verifyAdmin, async (req, res) => {
+    try {
+        const { status } = req.query;
+
+        let query = `
+            SELECT d.*,
+                   p.name as property_name, p.address,
+                   vr.scheduled_date,
+                   reporter.full_name as reporter_name, reporter.email as reporter_email,
+                   scout.full_name as scout_name,
+                   client.full_name as client_name,
+                   resolver.full_name as resolved_by_name
+            FROM disputes d
+            JOIN visit_requests vr ON d.visit_id = vr.id
+            JOIN properties p ON vr.property_id = p.id
+            JOIN users reporter ON d.reporter_id = reporter.id
+            LEFT JOIN users scout ON vr.assigned_scout_id = scout.id
+            JOIN users client ON p.user_id = client.id
+            LEFT JOIN users resolver ON d.resolved_by = resolver.id
+        `;
+
+        const params = [];
+        if (status) {
+            query += ` WHERE d.status = $1`;
+            params.push(status);
+        }
+
+        query += ` ORDER BY d.created_at DESC`;
+
+        const result = await db.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Admin Disputes Error:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   PUT /api/admin/disputes/:id
+// @desc    Update dispute status (resolve, close, etc.)
+router.put('/disputes/:id', auth, verifyAdmin, async (req, res) => {
+    const { status, resolution } = req.body;
+
+    if (!status) {
+        return res.status(400).json({ msg: 'Status is required' });
+    }
+
+    try {
+        const validStatuses = ['OPEN', 'IN_REVIEW', 'RESOLVED', 'CLOSED'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ msg: 'Invalid status' });
+        }
+
+        const update = await db.query(
+            `UPDATE disputes 
+             SET status = $1, 
+                 resolution = COALESCE($2, resolution),
+                 resolved_by = $3,
+                 resolved_at = CASE WHEN $1 IN ('RESOLVED', 'CLOSED') THEN NOW() ELSE resolved_at END
+             WHERE id = $4
+             RETURNING *`,
+            [status, resolution, req.user.id, req.params.id]
+        );
+
+        if (update.rows.length === 0) {
+            return res.status(404).json({ msg: 'Dispute not found' });
+        }
+
+        res.json({ msg: 'Dispute updated', dispute: update.rows[0] });
+    } catch (err) {
+        console.error('Update Dispute Error:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/admin/disputes/stats
+// @desc    Get dispute statistics
+router.get('/disputes/stats', auth, verifyAdmin, async (req, res) => {
+    try {
+        const stats = await db.query(`
+            SELECT 
+                COUNT(*) FILTER (WHERE status = 'OPEN') as open_count,
+                COUNT(*) FILTER (WHERE status = 'IN_REVIEW') as in_review_count,
+                COUNT(*) FILTER (WHERE status = 'RESOLVED') as resolved_count,
+                COUNT(*) FILTER (WHERE status = 'CLOSED') as closed_count,
+                COUNT(*) as total
+            FROM disputes
+        `);
+
+        res.json(stats.rows[0]);
+    } catch (err) {
+        console.error('Dispute Stats Error:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;

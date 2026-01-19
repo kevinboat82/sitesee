@@ -8,7 +8,8 @@ import {
     ClipboardDocumentCheckIcon,
     BuildingOfficeIcon,
     ArrowRightStartOnRectangleIcon,
-    ChartBarIcon
+    ChartBarIcon,
+    ExclamationTriangleIcon
 } from '@heroicons/react/24/solid';
 
 const AdminDashboard = () => {
@@ -18,8 +19,12 @@ const AdminDashboard = () => {
     const [stats, setStats] = useState(null);
     const [users, setUsers] = useState([]);
     const [visits, setVisits] = useState([]);
+    const [disputes, setDisputes] = useState([]);
     const [activeTab, setActiveTab] = useState('overview');
     const [loading, setLoading] = useState(true);
+    const [resolveModal, setResolveModal] = useState({ open: false, dispute: null });
+    const [resolution, setResolution] = useState('');
+    const [resolving, setResolving] = useState(false);
 
     // 1. Redirect if not Admin (wait for auth to finish loading first)
     useEffect(() => {
@@ -50,6 +55,9 @@ const AdminDashboard = () => {
 
                 const visitsRes = await axios.get('https://sitesee-api.onrender.com/api/admin/visits', config);
                 setVisits(visitsRes.data);
+
+                const disputesRes = await axios.get('https://sitesee-api.onrender.com/api/admin/disputes', config);
+                setDisputes(disputesRes.data);
             } catch (err) {
                 console.error("Admin Fetch Error:", err);
             } finally {
@@ -108,6 +116,18 @@ const AdminDashboard = () => {
                     >
                         <ClipboardDocumentCheckIcon className="h-5 w-5" />
                         Visit Requests
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('disputes')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'disputes' ? 'bg-red-600 text-white shadow-lg shadow-red-500/20' : 'text-white/50 hover:bg-white/5 hover:text-white'}`}
+                    >
+                        <ExclamationTriangleIcon className="h-5 w-5" />
+                        Disputes
+                        {disputes.filter(d => d.status === 'OPEN').length > 0 && (
+                            <span className="ml-auto px-2 py-0.5 text-xs bg-red-500 text-white rounded-full">
+                                {disputes.filter(d => d.status === 'OPEN').length}
+                            </span>
+                        )}
                     </button>
                 </nav>
 
@@ -277,7 +297,171 @@ const AdminDashboard = () => {
                     </div>
                 )}
 
+                {/* DISPUTES TAB */}
+                {activeTab === 'disputes' && (
+                    <div className="bg-white/5 border border-white/5 rounded-2xl overflow-hidden">
+                        <table className="w-full text-left">
+                            <thead className="bg-white/5 text-xs uppercase text-white/40 font-semibold">
+                                <tr>
+                                    <th className="px-6 py-4">Date</th>
+                                    <th className="px-6 py-4">Status</th>
+                                    <th className="px-6 py-4">Reporter</th>
+                                    <th className="px-6 py-4">Property</th>
+                                    <th className="px-6 py-4">Reason</th>
+                                    <th className="px-6 py-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {disputes.map(d => (
+                                    <tr key={d.id} className="hover:bg-white/5 transition">
+                                        <td className="px-6 py-4 text-white/70 font-mono text-sm">
+                                            {new Date(d.created_at).toLocaleDateString()}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2 py-1 text-xs font-bold rounded uppercase ${d.status === 'RESOLVED' ? 'bg-emerald-500/20 text-emerald-400' :
+                                                    d.status === 'CLOSED' ? 'bg-white/10 text-white/50' :
+                                                        d.status === 'IN_REVIEW' ? 'bg-blue-500/20 text-blue-400' :
+                                                            'bg-red-500/20 text-red-400'
+                                                }`}>
+                                                {d.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="text-white font-medium">{d.reporter_name}</div>
+                                            <div className="text-white/40 text-xs">{d.reporter_role}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="text-white">{d.property_name}</div>
+                                        </td>
+                                        <td className="px-6 py-4 text-white/60 text-sm max-w-[200px] truncate">
+                                            {d.reason?.replace(/_/g, ' ')}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {d.status === 'OPEN' && (
+                                                <button
+                                                    onClick={() => setResolveModal({ open: true, dispute: d })}
+                                                    className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg text-sm font-medium transition-all"
+                                                >
+                                                    Review
+                                                </button>
+                                            )}
+                                            {d.status === 'IN_REVIEW' && (
+                                                <button
+                                                    onClick={() => setResolveModal({ open: true, dispute: d })}
+                                                    className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded-lg text-sm font-medium transition-all"
+                                                >
+                                                    Resolve
+                                                </button>
+                                            )}
+                                            {(d.status === 'RESOLVED' || d.status === 'CLOSED') && d.resolution && (
+                                                <span className="text-white/40 text-xs italic truncate max-w-[150px] block">{d.resolution}</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {disputes.length === 0 && (
+                                    <tr>
+                                        <td colSpan="6" className="px-6 py-12 text-center text-white/40">
+                                            No disputes yet. Great news! 🎉
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
             </main>
+
+            {/* Resolve Modal */}
+            {resolveModal.open && resolveModal.dispute && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl p-6 w-full max-w-lg relative">
+                        <button
+                            onClick={() => { setResolveModal({ open: false, dispute: null }); setResolution(''); }}
+                            className="absolute top-4 right-4 text-white/40 hover:text-white transition"
+                        >
+                            ✕
+                        </button>
+
+                        <h2 className="text-xl font-bold text-white mb-4">Dispute Details</h2>
+
+                        <div className="space-y-3 mb-6">
+                            <div className="flex justify-between">
+                                <span className="text-white/50">Reporter:</span>
+                                <span className="text-white">{resolveModal.dispute.reporter_name} ({resolveModal.dispute.reporter_role})</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-white/50">Property:</span>
+                                <span className="text-white">{resolveModal.dispute.property_name}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-white/50">Reason:</span>
+                                <span className="text-white capitalize">{resolveModal.dispute.reason?.replace(/_/g, ' ')}</span>
+                            </div>
+                            <div>
+                                <span className="text-white/50 block mb-1">Description:</span>
+                                <p className="text-white bg-white/5 p-3 rounded-lg text-sm">{resolveModal.dispute.description}</p>
+                            </div>
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-white/70 mb-2">Resolution Notes</label>
+                            <textarea
+                                className="w-full bg-white/5 border border-white/10 text-white rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                rows="3"
+                                placeholder="How was this resolved..."
+                                value={resolution}
+                                onChange={(e) => setResolution(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={async () => {
+                                    setResolving(true);
+                                    try {
+                                        const token = localStorage.getItem('token');
+                                        await axios.put(
+                                            `https://sitesee-api.onrender.com/api/admin/disputes/${resolveModal.dispute.id}`,
+                                            { status: 'RESOLVED', resolution },
+                                            { headers: { Authorization: `Bearer ${token}` } }
+                                        );
+                                        const res = await axios.get('https://sitesee-api.onrender.com/api/admin/disputes', { headers: { Authorization: `Bearer ${token}` } });
+                                        setDisputes(res.data);
+                                        setResolveModal({ open: false, dispute: null });
+                                        setResolution('');
+                                    } catch (err) {
+                                        alert('Failed to resolve dispute');
+                                    } finally {
+                                        setResolving(false);
+                                    }
+                                }}
+                                disabled={resolving}
+                                className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white py-3 rounded-xl font-bold transition-all"
+                            >
+                                {resolving ? 'Resolving...' : 'Mark Resolved'}
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    const token = localStorage.getItem('token');
+                                    await axios.put(
+                                        `https://sitesee-api.onrender.com/api/admin/disputes/${resolveModal.dispute.id}`,
+                                        { status: 'IN_REVIEW' },
+                                        { headers: { Authorization: `Bearer ${token}` } }
+                                    );
+                                    const res = await axios.get('https://sitesee-api.onrender.com/api/admin/disputes', { headers: { Authorization: `Bearer ${token}` } });
+                                    setDisputes(res.data);
+                                    setResolveModal({ open: false, dispute: null });
+                                }}
+                                className="px-6 bg-white/10 hover:bg-white/15 text-white py-3 rounded-xl font-bold transition-all"
+                            >
+                                Mark In Review
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -16,7 +16,9 @@ import {
   DocumentTextIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  PlayCircleIcon
+  PlayCircleIcon,
+  ExclamationTriangleIcon,
+  FlagIcon
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid';
 
@@ -47,6 +49,12 @@ const PropertyDetails = () => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submittingRating, setSubmittingRating] = useState(false);
+
+  // Dispute Modal
+  const [disputeModal, setDisputeModal] = useState({ open: false, visitId: null });
+  const [disputeReason, setDisputeReason] = useState('');
+  const [disputeDescription, setDisputeDescription] = useState('');
+  const [submittingDispute, setSubmittingDispute] = useState(false);
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -193,6 +201,38 @@ const PropertyDetails = () => {
     }
   };
 
+  // Handle Dispute Submission
+  const handleSubmitDispute = async () => {
+    if (!disputeReason || !disputeDescription) {
+      alert("Please select a reason and provide details");
+      return;
+    }
+
+    setSubmittingDispute(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        'https://sitesee-api.onrender.com/api/disputes',
+        {
+          visit_id: disputeModal.visitId,
+          reason: disputeReason,
+          description: disputeDescription
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      alert("Dispute submitted. Our team will review and get back to you.");
+      setDisputeModal({ open: false, visitId: null });
+      setDisputeReason('');
+      setDisputeDescription('');
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.msg || "Failed to submit dispute");
+    } finally {
+      setSubmittingDispute(false);
+    }
+  };
+
   const getHealthColor = (score) => {
     if (score >= 70) return 'text-emerald-400';
     if (score >= 40) return 'text-amber-400';
@@ -290,9 +330,9 @@ const PropertyDetails = () => {
                       <span
                         key={i}
                         className={`text-xs px-2 py-1 rounded-full ${factor.status === 'good' ? 'bg-emerald-500/20 text-emerald-400' :
-                            factor.status === 'warning' ? 'bg-amber-500/20 text-amber-400' :
-                              factor.status === 'bad' ? 'bg-red-500/20 text-red-400' :
-                                'bg-white/10 text-white/50'
+                          factor.status === 'warning' ? 'bg-amber-500/20 text-amber-400' :
+                            factor.status === 'bad' ? 'bg-red-500/20 text-red-400' :
+                              'bg-white/10 text-white/50'
                           }`}
                       >
                         {factor.name}
@@ -394,7 +434,7 @@ const PropertyDetails = () => {
 
                     {/* Rating & Actions */}
                     {visit.status === 'COMPLETED' && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         {visit.client_rating ? (
                           <div className="flex items-center gap-1 bg-amber-500/20 px-3 py-1 rounded-full">
                             {[1, 2, 3, 4, 5].map(star => (
@@ -413,6 +453,13 @@ const PropertyDetails = () => {
                             Rate Visit
                           </button>
                         )}
+                        <button
+                          onClick={() => setDisputeModal({ open: true, visitId: visit.id })}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-full text-sm font-medium transition-all"
+                        >
+                          <FlagIcon className="h-4 w-4" />
+                          Report Issue
+                        </button>
                       </div>
                     )}
                   </div>
@@ -585,7 +632,67 @@ const PropertyDetails = () => {
         </div>
       )}
 
-      {/* Gallery Modal */}
+      {/* Dispute Modal */}
+      {disputeModal.open && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl p-6 w-full max-w-md relative">
+            <button
+              onClick={() => { setDisputeModal({ open: false, visitId: null }); setDisputeReason(''); setDisputeDescription(''); }}
+              className="absolute top-4 right-4 text-white/40 hover:text-white transition"
+            >
+              <XMarkIcon className="h-6 w-6" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center">
+                <ExclamationTriangleIcon className="h-5 w-5 text-red-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Report an Issue</h2>
+                <p className="text-white/50 text-sm">We'll review and get back to you</p>
+              </div>
+            </div>
+
+            {/* Reason Selection */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-white/70 mb-2">What went wrong?</label>
+              <select
+                value={disputeReason}
+                onChange={(e) => setDisputeReason(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 text-white rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all"
+              >
+                <option value="">Select a reason...</option>
+                <option value="incomplete_work">Incomplete Work</option>
+                <option value="poor_quality">Poor Quality Photos/Videos</option>
+                <option value="wrong_location">Wrong Location Visited</option>
+                <option value="scout_behavior">Unprofessional Behavior</option>
+                <option value="late_delivery">Late Submission</option>
+                <option value="other">Other Issue</option>
+              </select>
+            </div>
+
+            {/* Description */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-white/70 mb-2">Describe the issue</label>
+              <textarea
+                className="w-full bg-white/5 border border-white/10 text-white rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all placeholder:text-white/20"
+                rows="4"
+                placeholder="Please provide details about what went wrong..."
+                value={disputeDescription}
+                onChange={(e) => setDisputeDescription(e.target.value)}
+              />
+            </div>
+
+            <button
+              onClick={handleSubmitDispute}
+              disabled={submittingDispute || !disputeReason || !disputeDescription}
+              className="w-full bg-red-500 hover:bg-red-400 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 rounded-xl font-bold transition-all"
+            >
+              {submittingDispute ? 'Submitting...' : 'Submit Dispute'}
+            </button>
+          </div>
+        </div>
+      )}
       {galleryOpen && allMedia.length > 0 && (
         <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-50">
           <button

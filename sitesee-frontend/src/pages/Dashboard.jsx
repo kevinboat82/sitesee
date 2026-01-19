@@ -183,13 +183,7 @@ const Dashboard = () => {
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-slate-950/80 border-b border-white/5">
         <div className="max-w-4xl mx-auto px-6 py-5 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center">
-              <HomeModernIcon className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold tracking-tight">SiteSee</h1>
-              <p className="text-xs text-white/40">Property Monitoring</p>
-            </div>
+            <img src="/sitesee-logo.png" alt="SiteSee" className="h-10 w-auto" />
           </div>
 
           <div className="flex items-center gap-2">

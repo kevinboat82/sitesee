@@ -92,7 +92,7 @@ const Login = () => {
                 <HomeModernIcon className="h-8 w-8" />
               </div>
             </div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">SiteSee</h1>
+            <img src="/sitesee-logo.png" alt="SiteSee" className="h-12 w-auto" />
             <p className="text-slate-400 font-medium mt-2 text-center">Monitor your construction projects.</p>
           </div>
 

@@ -210,9 +210,7 @@ const ScoutDashboard = () => {
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-black/70 border-b border-white/10">
         <div className="max-w-3xl mx-auto px-6 py-4 flex justify-between items-center">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight">
-              <span className="text-amber-400">⚡</span> SiteSee Scout
-            </h1>
+            <img src="/scout-logo.png" alt="SiteSee Scout" className="h-10 w-auto" />
             <p className="text-xs text-white/50 mt-0.5">
               Welcome back, {user?.full_name?.split(' ')[0] || 'Scout'}
             </p>

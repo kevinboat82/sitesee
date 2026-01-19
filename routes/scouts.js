@@ -361,4 +361,45 @@ async function checkAndAwardAchievements(scoutId) {
   }
 }
 
+// @route   GET /api/scouts/wallet
+// @desc    Get scout's mobile money wallet details
+router.get('/wallet', auth, verifyScout, async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT momo_provider, momo_number FROM users WHERE id = $1`,
+      [req.user.id]
+    );
+
+    res.json({
+      provider: result.rows[0]?.momo_provider || null,
+      number: result.rows[0]?.momo_number || null
+    });
+  } catch (err) {
+    console.error('Wallet Error:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT /api/scouts/wallet
+// @desc    Update scout's mobile money wallet
+router.put('/wallet', auth, verifyScout, async (req, res) => {
+  const { provider, number } = req.body;
+
+  if (!provider || !number) {
+    return res.status(400).json({ msg: 'Provider and number are required' });
+  }
+
+  try {
+    await db.query(
+      `UPDATE users SET momo_provider = $1, momo_number = $2 WHERE id = $3`,
+      [provider, number, req.user.id]
+    );
+
+    res.json({ msg: 'Wallet updated successfully', provider, number });
+  } catch (err) {
+    console.error('Update Wallet Error:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 module.exports = router;

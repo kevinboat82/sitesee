@@ -28,6 +28,10 @@ const ScoutDashboard = () => {
   const [selectedFiles, setSelectedFiles] = useState({});
   const [scoutNotes, setScoutNotes] = useState({});
 
+  // Wallet state
+  const [wallet, setWallet] = useState({ provider: '', number: '' });
+  const [walletSaving, setWalletSaving] = useState(false);
+
   // Fetch Jobs
   const fetchJobs = async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
@@ -279,6 +283,7 @@ const ScoutDashboard = () => {
           {[
             { id: 'jobs', label: 'Available Jobs', count: jobs.length },
             { id: 'history', label: 'Completed', count: jobHistory.length },
+            { id: 'wallet', label: '💳 Wallet', count: 0 },
           ].map(tab => (
             <button
               key={tab.id}
@@ -541,6 +546,87 @@ const ScoutDashboard = () => {
                 </div>
               ))
             )}
+          </div>
+        )}
+
+        {/* Wallet Tab */}
+        {activeTab === 'wallet' && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/10 rounded-2xl p-6 border border-white/10">
+              <h3 className="text-xl font-bold text-white mb-2">💰 Payout Settings</h3>
+              <p className="text-white/60 text-sm mb-6">Add your mobile money details to receive payments for completed jobs.</p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-white/70 mb-2">Mobile Money Provider</label>
+                  <select
+                    value={wallet.provider}
+                    onChange={(e) => setWallet({ ...wallet, provider: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 text-white rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="">Select Provider...</option>
+                    <option value="MTN">MTN Mobile Money</option>
+                    <option value="VODAFONE">Vodafone Cash</option>
+                    <option value="AIRTELTIGO">AirtelTigo Money</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white/70 mb-2">Mobile Money Number</label>
+                  <input
+                    type="tel"
+                    value={wallet.number}
+                    onChange={(e) => setWallet({ ...wallet, number: e.target.value })}
+                    placeholder="e.g. 0241234567"
+                    className="w-full bg-white/5 border border-white/10 text-white rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder:text-white/30"
+                  />
+                </div>
+
+                <button
+                  onClick={async () => {
+                    if (!wallet.provider || !wallet.number) {
+                      alert('Please fill in all fields');
+                      return;
+                    }
+                    setWalletSaving(true);
+                    try {
+                      await api.put('/scouts/wallet', { provider: wallet.provider, number: wallet.number });
+                      alert('Wallet saved successfully!');
+                    } catch (err) {
+                      alert('Error saving wallet');
+                    } finally {
+                      setWalletSaving(false);
+                    }
+                  }}
+                  disabled={walletSaving}
+                  className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black py-3 rounded-xl font-bold transition-all"
+                >
+                  {walletSaving ? 'Saving...' : 'Save Wallet Details'}
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+              <h4 className="text-lg font-semibold text-white mb-4">How Payouts Work</h4>
+              <ul className="space-y-3 text-sm text-white/60">
+                <li className="flex items-start gap-3">
+                  <span className="text-amber-400">1.</span>
+                  Complete a job and submit photos/videos
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-amber-400">2.</span>
+                  Client reviews and approves your submission
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-amber-400">3.</span>
+                  GHS 25 is credited to your account
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-amber-400">4.</span>
+                  Request withdrawal to your mobile money
+                </li>
+              </ul>
+            </div>
           </div>
         )}
 

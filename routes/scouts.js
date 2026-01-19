@@ -3,10 +3,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/authMiddleware');
 const db = require('../config/db');
-
-// Note: If you haven't set up Cloudinary yet, this line might error. 
-// If it does, comment it out for now.
-// const upload = require('../config/cloudinary'); 
+const upload = require('../config/cloudinary');
 
 // Middleware to ensure user is actually a SCOUT
 const verifyScout = (req, res, next) => {
@@ -16,7 +13,107 @@ const verifyScout = (req, res, next) => {
   next();
 };
 
-// --- CLIENT ROUTES (For You) ---
+// --- SCOUT EARNINGS ROUTES ---
+
+// @route   GET /api/scouts/earnings
+// @desc    Get scout earnings summary
+router.get('/earnings', auth, verifyScout, async (req, res) => {
+  try {
+    // Get earnings breakdown
+    const earnings = await db.query(`
+      SELECT 
+        COALESCE(SUM(CASE WHEN created_at >= NOW() - INTERVAL '7 days' THEN amount ELSE 0 END), 0) as week_total,
+        COALESCE(SUM(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN amount ELSE 0 END), 0) as month_total,
+        COALESCE(SUM(amount), 0) as all_time_total,
+        COALESCE(SUM(CASE WHEN status = 'PENDING' THEN amount ELSE 0 END), 0) as pending_payout,
+        COUNT(*) as total_jobs
+      FROM scout_earnings
+      WHERE scout_id = $1
+    `, [req.user.id]);
+
+    // Get recent earnings history
+    const history = await db.query(`
+      SELECT se.*, p.name as property_name
+      FROM scout_earnings se
+      LEFT JOIN visit_requests vr ON se.visit_id = vr.id
+      LEFT JOIN properties p ON vr.property_id = p.id
+      WHERE se.scout_id = $1
+      ORDER BY se.created_at DESC
+      LIMIT 10
+    `, [req.user.id]);
+
+    res.json({
+      summary: earnings.rows[0],
+      history: history.rows
+    });
+  } catch (err) {
+    console.error('Earnings Error:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET /api/scouts/achievements
+// @desc    Get scout's achievements and available badges
+router.get('/achievements', auth, verifyScout, async (req, res) => {
+  try {
+    // Get earned achievements
+    const earned = await db.query(`
+      SELECT a.*, sa.earned_at
+      FROM scout_achievements sa
+      JOIN achievements a ON sa.achievement_id = a.id
+      WHERE sa.scout_id = $1
+      ORDER BY sa.earned_at DESC
+    `, [req.user.id]);
+
+    // Get all achievements for progress display
+    const all = await db.query(`SELECT * FROM achievements ORDER BY requirement_value`);
+
+    // Get scout stats for progress
+    const stats = await db.query(`
+      SELECT 
+        COUNT(*) as jobs_completed,
+        COALESCE(AVG(client_rating), 0) as avg_rating
+      FROM visit_requests
+      WHERE assigned_scout_id = $1 AND status = 'COMPLETED'
+    `, [req.user.id]);
+
+    res.json({
+      earned: earned.rows,
+      all: all.rows,
+      stats: stats.rows[0]
+    });
+  } catch (err) {
+    console.error('Achievements Error:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET /api/scouts/history
+// @desc    Get completed job history
+router.get('/history', auth, verifyScout, async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = parseInt(req.query.offset) || 0;
+
+    const history = await db.query(`
+      SELECT vr.*, p.name, p.address, p.google_maps_link,
+             (SELECT COUNT(*) FROM media WHERE visit_id = vr.id) as media_count,
+             (SELECT url FROM media WHERE visit_id = vr.id LIMIT 1) as thumbnail
+      FROM visit_requests vr
+      JOIN properties p ON vr.property_id = p.id
+      WHERE vr.assigned_scout_id = $1 AND vr.status = 'COMPLETED'
+      ORDER BY vr.completed_at DESC
+      LIMIT $2 OFFSET $3
+    `, [req.user.id, limit, offset]);
+
+    res.json(history.rows);
+  } catch (err) {
+    console.error('History Error:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// --- CLIENT ROUTES ---
 
 // @route   POST /api/scouts/request
 // @desc    Client requests a new visit
@@ -34,6 +131,19 @@ router.post('/request', auth, async (req, res) => {
       [property_id, req.user.id, scheduled_date, instructions]
     );
 
+    // Create activity
+    const { createActivity } = require('./activity');
+    const prop = await db.query('SELECT name, user_id FROM properties WHERE id = $1', [property_id]);
+    if (prop.rows[0]) {
+      await createActivity(
+        prop.rows[0].user_id,
+        property_id,
+        'VISIT_SCHEDULED',
+        'Visit Scheduled',
+        `A new visit has been scheduled for ${new Date(scheduled_date).toLocaleDateString()}`
+      );
+    }
+
     res.json(newVisit.rows[0]);
 
   } catch (err) {
@@ -42,20 +152,24 @@ router.post('/request', auth, async (req, res) => {
   }
 });
 
-
-// --- SCOUT ROUTES (For the Employee) ---
+// --- SCOUT JOB ROUTES ---
 
 // @route   GET /api/scouts/jobs
 // @desc    See all available jobs (PENDING)
 router.get('/jobs', auth, verifyScout, async (req, res) => {
   try {
-    // FIX: Changed gps_location -> address
     const jobs = await db.query(`
       SELECT vr.id, vr.scheduled_date, vr.instructions, 
-             p.name, p.address, p.google_maps_link
+             p.name, p.address, p.google_maps_link,
+             CASE 
+               WHEN vr.scheduled_date < CURRENT_DATE THEN 'OVERDUE'
+               WHEN vr.scheduled_date = CURRENT_DATE THEN 'TODAY'
+               ELSE 'UPCOMING'
+             END as priority
       FROM visit_requests vr
       JOIN properties p ON vr.property_id = p.id
       WHERE vr.status = 'PENDING'
+      ORDER BY vr.scheduled_date ASC
     `);
 
     res.json(jobs.rows);
@@ -88,13 +202,12 @@ router.put('/jobs/:id/claim', auth, verifyScout, async (req, res) => {
   }
 });
 
-const upload = require('../config/cloudinary'); // Import the config we just made
-
 // @route   POST /api/scouts/jobs/:id/complete
-// @desc    Upload multiple photos/videos and mark job as COMPLETE
+// @desc    Upload multiple photos/videos, add notes, and mark job as COMPLETE
 router.post('/jobs/:id/complete', auth, upload.array('media', 10), async (req, res) => {
   try {
     const visitId = req.params.id;
+    const scoutNotes = req.body.notes || req.body.scout_notes || '';
 
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ msg: 'Please upload at least one photo or video' });
@@ -104,22 +217,60 @@ router.post('/jobs/:id/complete', auth, upload.array('media', 10), async (req, r
 
     // 1. Save All Media URLs to Media Table
     for (const file of req.files) {
-      // Determine type (default to IMAGE, check for video)
       const mediaType = file.mimetype.startsWith('video') ? 'VIDEO' : 'IMAGE';
-
       await db.query(
         `INSERT INTO media (visit_id, url, media_type) VALUES ($1, $2, $3)`,
         [visitId, file.path, mediaType]
       );
     }
 
-    // 2. Mark Job as COMPLETED
-    await db.query(
+    // 2. Mark Job as COMPLETED with notes
+    const completedJob = await db.query(
       `UPDATE visit_requests 
-         SET status = 'COMPLETED', completed_at = NOW() 
-         WHERE id = $1`,
-      [visitId]
+         SET status = 'COMPLETED', 
+             completed_at = NOW(),
+             scout_notes = $2,
+             assigned_scout_id = COALESCE(assigned_scout_id, $3)
+         WHERE id = $1
+         RETURNING *`,
+      [visitId, scoutNotes, req.user.id]
     );
+
+    const job = completedJob.rows[0];
+
+    // 3. Create earning record for scout
+    await db.query(
+      `INSERT INTO scout_earnings (scout_id, visit_id, amount, status)
+       VALUES ($1, $2, 25.00, 'PENDING')`,
+      [req.user.id, visitId]
+    );
+
+    // 4. Update property visit stats
+    if (job && job.property_id) {
+      await db.query(
+        `UPDATE properties 
+         SET last_visit_date = NOW(), 
+             visit_count = COALESCE(visit_count, 0) + 1
+         WHERE id = $1`,
+        [job.property_id]
+      );
+
+      // 5. Create activity for property owner
+      const prop = await db.query('SELECT name, user_id FROM properties WHERE id = $1', [job.property_id]);
+      if (prop.rows[0]) {
+        const { createActivity } = require('./activity');
+        await createActivity(
+          prop.rows[0].user_id,
+          job.property_id,
+          'VISIT_COMPLETED',
+          'Visit Completed',
+          `Your property "${prop.rows[0].name}" has been inspected. ${req.files.length} photos/videos uploaded.`
+        );
+      }
+    }
+
+    // 6. Check and award achievements
+    await checkAndAwardAchievements(req.user.id);
 
     res.json({ msg: 'Job Completed and Media Uploaded!', count: req.files.length });
 
@@ -128,5 +279,40 @@ router.post('/jobs/:id/complete', auth, upload.array('media', 10), async (req, r
     res.status(500).send('Server Error');
   }
 });
-//fixx
+
+// Helper: Check and award achievements
+async function checkAndAwardAchievements(scoutId) {
+  try {
+    // Get scout's current stats
+    const stats = await db.query(`
+      SELECT COUNT(*) as jobs_completed
+      FROM visit_requests
+      WHERE assigned_scout_id = $1 AND status = 'COMPLETED'
+    `, [scoutId]);
+
+    const jobsCompleted = parseInt(stats.rows[0].jobs_completed);
+
+    // Get achievements not yet earned
+    const unearnedAchievements = await db.query(`
+      SELECT a.* FROM achievements a
+      WHERE a.requirement_type = 'JOBS_COMPLETED'
+        AND a.requirement_value <= $1
+        AND a.id NOT IN (
+          SELECT achievement_id FROM scout_achievements WHERE scout_id = $2
+        )
+    `, [jobsCompleted, scoutId]);
+
+    // Award new achievements
+    for (const achievement of unearnedAchievements.rows) {
+      await db.query(
+        `INSERT INTO scout_achievements (scout_id, achievement_id) VALUES ($1, $2)`,
+        [scoutId, achievement.id]
+      );
+      console.log(`🏆 Achievement unlocked for scout ${scoutId}: ${achievement.name}`);
+    }
+  } catch (err) {
+    console.error('Achievement check failed:', err.message);
+  }
+}
+
 module.exports = router;

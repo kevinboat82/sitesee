@@ -36,6 +36,22 @@ const ScoutDashboard = () => {
   const [authModal, setAuthModal] = useState({ open: false, letter: null });
   const [loadingAuth, setLoadingAuth] = useState(false);
 
+  // Claimed jobs state
+  const [claimedJobs, setClaimedJobs] = useState({});
+  const [claimingJob, setClaimingJob] = useState({});
+
+  const handleClaimJob = async (jobId) => {
+    setClaimingJob(prev => ({ ...prev, [jobId]: true }));
+    try {
+      await api.put(`/scouts/jobs/${jobId}/claim`);
+      setClaimedJobs(prev => ({ ...prev, [jobId]: true }));
+    } catch (err) {
+      alert(err.response?.data?.msg || 'Failed to claim job. It may have been claimed by another scout.');
+    } finally {
+      setClaimingJob(prev => ({ ...prev, [jobId]: false }));
+    }
+  };
+
   // Fetch Jobs
   const fetchJobs = async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
@@ -338,6 +354,7 @@ const ScoutDashboard = () => {
                 const hasFiles = currentFiles.length > 0;
                 const imgCount = currentFiles.filter(f => f.type.startsWith('image')).length;
                 const vidCount = currentFiles.filter(f => f.type.startsWith('video')).length;
+                const isClaimed = claimedJobs[job.id];
 
                 return (
                   <div
@@ -349,9 +366,16 @@ const ScoutDashboard = () => {
                       {/* Header with Priority */}
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-white group-hover:text-amber-300 transition-colors duration-300">
-                            {job.name}
-                          </h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-semibold text-white group-hover:text-amber-300 transition-colors duration-300">
+                              {job.name}
+                            </h3>
+                            {isClaimed && (
+                              <span className="px-2 py-0.5 text-xs font-bold bg-amber-500/20 text-amber-400 rounded-full">
+                                ✓ CLAIMED
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2 mt-1.5">
                             <MapPinIcon className="h-3.5 w-3.5 text-red-400" />
                             <span className="text-sm text-white/50">{job.address}</span>
@@ -469,8 +493,29 @@ const ScoutDashboard = () => {
                           </div>
                         )}
 
-                        {/* Capture Buttons */}
-                        {(!hasFiles || uploadingId !== job.id) && (
+                        {/* CLAIM BUTTON - Show when not claimed */}
+                        {!isClaimed && !hasFiles && (
+                          <button
+                            onClick={() => handleClaimJob(job.id)}
+                            disabled={claimingJob[job.id]}
+                            className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 disabled:opacity-50 text-black rounded-xl font-bold text-lg shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2"
+                          >
+                            {claimingJob[job.id] ? (
+                              <>
+                                <ArrowPathIcon className="h-5 w-5 animate-spin" />
+                                Claiming...
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircleIcon className="h-5 w-5" />
+                                Claim This Job
+                              </>
+                            )}
+                          </button>
+                        )}
+
+                        {/* Capture Buttons - Only show AFTER claiming */}
+                        {isClaimed && (!hasFiles || uploadingId !== job.id) && (
                           <div className="flex gap-2">
                             <div className="relative flex-1">
                               <input

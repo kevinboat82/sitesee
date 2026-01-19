@@ -403,20 +403,22 @@ router.put('/wallet', auth, verifyScout, async (req, res) => {
 });
 
 // @route   GET /api/scouts/jobs/:id/authorization
-// @desc    Get Letter of Authority for a claimed job
+// @desc    Get Letter of Authority for a job (PENDING or ASSIGNED to this scout)
 router.get('/jobs/:id/authorization', auth, verifyScout, async (req, res) => {
   try {
+    // Allow for PENDING jobs (any scout can view) or ASSIGNED (only the assigned scout)
     const job = await db.query(`
       SELECT vr.*, p.name as property_name, p.address, 
              owner.full_name as owner_name, owner.phone_number as owner_phone
       FROM visit_requests vr
       JOIN properties p ON vr.property_id = p.id
       JOIN users owner ON p.user_id = owner.id
-      WHERE vr.id = $1 AND vr.assigned_scout_id = $2
+      WHERE vr.id = $1 
+        AND (vr.status = 'PENDING' OR vr.assigned_scout_id = $2)
     `, [req.params.id, req.user.id]);
 
     if (job.rows.length === 0) {
-      return res.status(404).json({ msg: 'Job not found or not assigned to you' });
+      return res.status(404).json({ msg: 'Job not found or not accessible' });
     }
 
     const visit = job.rows[0];

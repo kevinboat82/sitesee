@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import api from "../api";
 import { AuthContext } from "../context/AuthContext";
+import { getCurrentGPS, processFilesWithWatermark } from "../utils/watermark";
 import {
   MapPinIcon, CameraIcon, CheckCircleIcon, ArrowPathIcon,
   ClockIcon, BanknotesIcon, TrophyIcon, ChartBarIcon,
@@ -115,15 +116,36 @@ const ScoutDashboard = () => {
     navigate('/');
   };
 
-  // Handle File Selection
-  const handleFileSelect = (e, jobId) => {
+  // Handle File Selection with Watermarking
+  const handleFileSelect = async (e, jobId) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    setSelectedFiles(prev => ({
-      ...prev,
-      [jobId]: [...(prev[jobId] || []), ...files]
-    }));
+    // Show processing indicator
+    setUploadingId(jobId);
+
+    try {
+      // Get GPS coordinates
+      const gps = await getCurrentGPS();
+
+      // Process images with watermarks
+      const watermarkedFiles = await processFilesWithWatermark(files, gps);
+
+      setSelectedFiles(prev => ({
+        ...prev,
+        [jobId]: [...(prev[jobId] || []), ...watermarkedFiles]
+      }));
+    } catch (err) {
+      console.error('Error processing files:', err);
+      // Fallback to original files
+      setSelectedFiles(prev => ({
+        ...prev,
+        [jobId]: [...(prev[jobId] || []), ...files]
+      }));
+    } finally {
+      setUploadingId(null);
+    }
+
     e.target.value = "";
   };
 

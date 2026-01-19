@@ -154,10 +154,26 @@ router.post('/request', auth, async (req, res) => {
 
 // --- SCOUT JOB ROUTES ---
 
+// Job claim timeout in hours (jobs auto-release if not completed)
+const JOB_CLAIM_HOURS = 4;
+
 // @route   GET /api/scouts/jobs
-// @desc    See all available jobs (PENDING)
+// @desc    See all available jobs (PENDING or expired claims)
 router.get('/jobs', auth, verifyScout, async (req, res) => {
   try {
+    // First, auto-release any expired claimed jobs back to PENDING
+    await db.query(`
+      UPDATE visit_requests 
+      SET status = 'PENDING', 
+          assigned_scout_id = NULL, 
+          claimed_at = NULL,
+          claim_expires_at = NULL
+      WHERE status = 'ASSIGNED' 
+        AND claim_expires_at IS NOT NULL 
+        AND claim_expires_at < NOW()
+    `);
+
+    // Now fetch available jobs (PENDING only)
     const jobs = await db.query(`
       SELECT vr.id, vr.scheduled_date, vr.instructions, 
              p.name, p.address, p.google_maps_link,
@@ -180,25 +196,55 @@ router.get('/jobs', auth, verifyScout, async (req, res) => {
 });
 
 // @route   PUT /api/scouts/jobs/:id/claim
-// @desc    Scout accepts a job
+// @desc    Scout claims a job (exclusive - prevents double claiming)
 router.put('/jobs/:id/claim', auth, verifyScout, async (req, res) => {
+  const client = await db.connect();
+
   try {
-    const job = await db.query(
-      `UPDATE visit_requests 
-       SET status = 'ASSIGNED', assigned_scout_id = $1 
-       WHERE id = $2 AND status = 'PENDING' 
-       RETURNING *`,
-      [req.user.id, req.params.id]
+    await client.query('BEGIN');
+
+    // Lock the row to prevent race conditions (FOR UPDATE)
+    const checkJob = await client.query(
+      `SELECT * FROM visit_requests 
+       WHERE id = $1 AND status = 'PENDING'
+       FOR UPDATE`,
+      [req.params.id]
     );
 
-    if (job.rows.length === 0) {
-      return res.status(400).json({ msg: 'Job not found or already taken' });
+    if (checkJob.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ msg: 'Job not found or already taken by another scout' });
     }
 
-    res.json({ msg: 'Job claimed!', job: job.rows[0] });
+    // Calculate claim expiration (4 hours from now)
+    const claimExpiresAt = new Date(Date.now() + JOB_CLAIM_HOURS * 60 * 60 * 1000);
+
+    // Claim the job with timer
+    const job = await client.query(
+      `UPDATE visit_requests 
+       SET status = 'ASSIGNED', 
+           assigned_scout_id = $1,
+           claimed_at = NOW(),
+           claim_expires_at = $2
+       WHERE id = $3
+       RETURNING *`,
+      [req.user.id, claimExpiresAt, req.params.id]
+    );
+
+    await client.query('COMMIT');
+
+    res.json({
+      msg: 'Job claimed successfully!',
+      job: job.rows[0],
+      expiresAt: claimExpiresAt,
+      hoursToComplete: JOB_CLAIM_HOURS
+    });
   } catch (err) {
-    console.error(err.message);
+    await client.query('ROLLBACK');
+    console.error('Claim Error:', err.message);
     res.status(500).send('Server Error');
+  } finally {
+    client.release();
   }
 });
 

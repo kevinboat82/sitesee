@@ -2,23 +2,31 @@ import { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { ThemeContext } from '../context/ThemeContext';
 import {
   HomeModernIcon, PlusIcon, MapPinIcon, ArrowRightIcon,
   CheckCircleIcon, SparklesIcon, BellIcon, ChartBarIcon,
-  CalendarDaysIcon, ClockIcon
+  CalendarDaysIcon, ClockIcon, SunIcon, MoonIcon
 } from '@heroicons/react/24/outline';
 import { ArrowRightStartOnRectangleIcon } from '@heroicons/react/24/outline';
+
+// Magic UI Components
+import GlassCard from '../components/magicui/GlassCard';
+import { SpotlightCard } from '../components/magicui/Spotlight';
+import AnimatedGradient from '../components/magicui/AnimatedGradient';
+import BottomNav from '../components/BottomNav';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, user, authLoading } = useContext(AuthContext);
+  const { darkMode } = useContext(ThemeContext);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [payingPropertyId, setPayingPropertyId] = useState(null);
   const [activities, setActivities] = useState([]);
   const [healthScores, setHealthScores] = useState({});
-  const [activeTab, setActiveTab] = useState('properties'); // properties, activity
+  const [activeTab, setActiveTab] = useState('properties');
 
   // Redirect Admins
   useEffect(() => {
@@ -42,7 +50,7 @@ const Dashboard = () => {
         setData(res.data);
         setLoading(false);
 
-        // Fetch health scores for each property
+        // Fetch health scores
         if (res.data?.properties) {
           res.data.properties.forEach(async (prop) => {
             try {
@@ -136,9 +144,9 @@ const Dashboard = () => {
   };
 
   const getHealthColor = (score) => {
-    if (score >= 70) return 'text-emerald-400';
-    if (score >= 40) return 'text-amber-400';
-    return 'text-red-400';
+    if (score >= 70) return darkMode ? 'text-emerald-400' : 'text-emerald-600';
+    if (score >= 40) return darkMode ? 'text-amber-400' : 'text-amber-600';
+    return darkMode ? 'text-red-400' : 'text-red-600';
   };
 
   const getHealthBg = (score) => {
@@ -173,16 +181,15 @@ const Dashboard = () => {
   // Loading Animation
   if (loading) {
     return (
-      <div className="min-h-screen dark:bg-slate-950 bg-gray-50 flex flex-col items-center justify-center transition-colors duration-300">
+      <div className={`min-h-screen flex flex-col items-center justify-center transition-colors duration-500 ${darkMode ? 'bg-slate-950' : 'bg-gray-50'}`}>
         <div className="flex gap-2 mb-6">
-          <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-          <div className="w-4 h-4 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-          <div className="w-4 h-4 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+          <div className="w-3 h-3 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+          <div className="w-3 h-3 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
         </div>
-        <p className="dark:text-white/60 text-gray-500 text-sm font-medium">Loading your properties...</p>
-        <div className="mt-8 dark:text-white/30 text-gray-400 text-xs animate-pulse">
-          ✨ Making things beautiful for you
-        </div>
+        <p className={`text-sm font-medium ${darkMode ? 'text-white/60' : 'text-gray-500'}`}>
+          Loading your properties...
+        </p>
       </div>
     );
   }
@@ -191,53 +198,69 @@ const Dashboard = () => {
   const totalCount = data?.properties?.length || 0;
 
   return (
-    <div className="min-h-screen dark:bg-slate-950 bg-gray-50 dark:text-white text-gray-900 font-sans transition-colors duration-300">
+    <div className={`min-h-screen font-sans transition-colors duration-500 ${darkMode ? 'bg-slate-950 text-white' : 'bg-gray-50 text-gray-900'}`}>
+
+      {/* Background Effects */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        {darkMode ? (
+          <AnimatedGradient
+            colors={["#3b82f6", "#8b5cf6", "#06b6d4"]}
+            speed={15}
+            blur="heavy"
+          />
+        ) : (
+          <div className="absolute inset-0 gradient-mesh opacity-50" />
+        )}
+      </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl dark:bg-slate-950/80 bg-white/80 dark:border-white/5 border-gray-200 border-b transition-colors duration-300">
-        <div className="max-w-4xl mx-auto px-6 py-5 flex justify-between items-center">
+      <header className={`sticky top-0 z-50 backdrop-blur-2xl transition-colors duration-500 ${darkMode
+        ? 'bg-slate-950/80 border-white/5'
+        : 'bg-white/80 border-gray-200'
+        } border-b`}>
+        <div className="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <img src="/sitesee-logo.png" alt="SiteSee" className="h-10 w-auto" />
+            <img src="/sitesee-logo.png" alt="SiteSee" className="h-9 w-auto" />
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate('/settings')}
-              className="flex items-center gap-2 text-sm dark:text-white/50 text-gray-500 hover:text-blue-500 dark:hover:text-white transition-all duration-300 px-3 py-2 rounded-full dark:hover:bg-white/5 hover:bg-gray-100"
-              title="Settings"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-                <path fillRule="evenodd" d="M11.828 2.25c-.916 0-1.699.663-1.85 1.567l-.091.549a.798.798 0 01-.517.608 7.45 7.45 0 00-.478.198.798.798 0 01-.796-.064l-.453-.324a1.875 1.875 0 00-2.416.2l-.243.243a1.875 1.875 0 00-.2 2.416l.324.453a.798.798 0 01.064.796 7.448 7.448 0 00-.198.478.798.798 0 01-.608.517l-.55.092a1.875 1.875 0 00-1.566 1.849v.344c0 .916.663 1.699 1.567 1.85l.549.091c.281.047.508.25.608.517.06.162.127.321.198.478a.798.798 0 01-.064.796l-.324.453a1.875 1.875 0 00.2 2.416l.243.243c.648.648 1.67.733 2.416.2l.453-.324a.798.798 0 01.796-.064c.157.071.316.137.478.198.267.1.47.327.517.608l.092.55c.15.903.932 1.566 1.849 1.566h.344c.916 0 1.699-.663 1.85-1.567l.091-.549a.798.798 0 01.517-.608 7.52 7.52 0 00.478-.198.798.798 0 01.796.064l.453.324a1.875 1.875 0 002.416-.2l.243-.243c.648-.648.733-1.67.2-2.416l-.324-.453a.798.798 0 01-.064-.796c.071-.157.137-.316.198-.478.1-.267.327-.47.608-.517l.55-.091a1.875 1.875 0 001.566-1.85v-.344c0-.916-.663-1.699-1.567-1.85l-.549-.091a.798.798 0 01-.608-.517 7.507 7.507 0 00-.198-.478.798.798 0 01.064-.796l.324-.453a1.875 1.875 0 00-.2-2.416l-.243-.243a1.875 1.875 0 00-2.416-.2l-.453.324a.798.798 0 01-.796.064 7.462 7.462 0 00-.478-.198.798.798 0 01-.517-.608l-.091-.55a1.875 1.875 0 00-1.85-1.566h-.344zM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z" clipRule="evenodd" />
-              </svg>
-            </button>
+          <div className="flex items-center gap-1">
+            {/* Profile */}
             <button
               onClick={() => navigate('/profile')}
-              className="flex items-center gap-2 text-sm dark:text-white/50 text-gray-500 hover:text-blue-500 dark:hover:text-white transition-all duration-300 px-3 py-2 rounded-full dark:hover:bg-white/5 hover:bg-gray-100"
+              className={`p-2 rounded-xl transition-all duration-300 ${darkMode
+                ? 'hover:bg-white/10'
+                : 'hover:bg-gray-100'
+                }`}
             >
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-xs font-bold text-white">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-xs font-bold text-white shadow-lg shadow-blue-500/20">
                 {data?.user?.full_name?.charAt(0)?.toUpperCase() || '?'}
               </div>
             </button>
+
+            {/* Logout */}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 text-sm dark:text-white/50 text-gray-500 hover:text-red-500 dark:hover:text-white transition-all duration-300 px-3 py-2 rounded-full dark:hover:bg-white/5 hover:bg-gray-100"
+              className={`flex items-center gap-2 text-sm ml-2 px-3 py-2 rounded-xl transition-all duration-300 ${darkMode
+                ? 'text-white/60 hover:bg-red-500/10 hover:text-red-400'
+                : 'text-gray-500 hover:bg-red-50 hover:text-red-600'
+                }`}
             >
               <ArrowRightStartOnRectangleIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">Sign Out</span>
+              <span className="hidden sm:inline font-medium">Sign Out</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-6 py-10 transition-colors duration-300">
+      <main className="relative z-10 max-w-5xl mx-auto px-6 py-10 pb-28">
 
         {/* Greeting */}
-        <div className="mb-10">
-          <h2 className="text-3xl font-bold dark:text-white text-gray-900 mb-2">
+        <div className="mb-10 animate-fade-up">
+          <h2 className={`text-3xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
             Hello, {data?.user?.full_name?.split(' ')[0] || 'there'} 👋
           </h2>
-          <p className="dark:text-white/50 text-gray-500">
+          <p className={darkMode ? 'text-white/50' : 'text-gray-500'}>
             {activeCount > 0
               ? `You have ${activeCount} active ${activeCount === 1 ? 'property' : 'properties'} being monitored.`
               : "Let's get your properties monitored."}
@@ -246,18 +269,20 @@ const Dashboard = () => {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-3 gap-4 mb-10">
-          <div className="dark:bg-white/5 bg-white rounded-2xl p-5 border dark:border-white/5 border-gray-200 shadow-sm transition-colors duration-300">
-            <p className="text-3xl font-bold dark:text-white text-gray-900">{totalCount}</p>
-            <p className="text-sm dark:text-white/40 text-gray-500 mt-1">Total Properties</p>
-          </div>
-          <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/10 rounded-2xl p-5 border border-blue-500/20">
+          <GlassCard className="p-5" hover={true}>
+            <p className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{totalCount}</p>
+            <p className={`text-sm mt-1 ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>Total Properties</p>
+          </GlassCard>
+
+          <GlassCard className="p-5 !bg-gradient-to-br !from-blue-500/20 !to-cyan-500/10 !border-blue-500/20" glow={true} glowColor="blue">
             <p className="text-3xl font-bold text-blue-500">{activeCount}</p>
-            <p className="text-sm dark:text-white/40 text-gray-500 mt-1">Active Plans</p>
-          </div>
-          <div className="dark:bg-white/5 bg-white rounded-2xl p-5 border dark:border-white/5 border-gray-200 shadow-sm transition-colors duration-300">
-            <p className="text-3xl font-bold dark:text-white text-gray-900">{activities.length}</p>
-            <p className="text-sm dark:text-white/40 text-gray-500 mt-1">Recent Updates</p>
-          </div>
+            <p className={`text-sm mt-1 ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>Active Plans</p>
+          </GlassCard>
+
+          <GlassCard className="p-5" hover={true}>
+            <p className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{activities.length}</p>
+            <p className={`text-sm mt-1 ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>Recent Updates</p>
+          </GlassCard>
         </div>
 
         {/* Tabs */}
@@ -269,9 +294,13 @@ const Dashboard = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${activeTab === tab.id
-                ? 'bg-white text-slate-900'
-                : 'text-white/50 hover:text-white hover:bg-white/10'
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${activeTab === tab.id
+                ? darkMode
+                  ? 'bg-white text-slate-900 shadow-lg'
+                  : 'bg-gray-900 text-white shadow-lg'
+                : darkMode
+                  ? 'text-white/50 hover:text-white hover:bg-white/10'
+                  : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                 }`}
             >
               <tab.icon className="h-4 w-4" />
@@ -286,7 +315,10 @@ const Dashboard = () => {
 
           <button
             onClick={() => navigate('/add-property')}
-            className="ml-auto flex items-center gap-2 px-4 py-2.5 bg-white text-slate-900 rounded-full text-sm font-semibold hover:bg-white/90 transition-all duration-300"
+            className={`ml-auto flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 shadow-lg ${darkMode
+              ? 'bg-white text-slate-900 hover:bg-white/90 shadow-white/10'
+              : 'bg-gray-900 text-white hover:bg-gray-800 shadow-gray-900/20'
+              }`}
           >
             <PlusIcon className="h-4 w-4" />
             Add Property
@@ -301,105 +333,122 @@ const Dashboard = () => {
                 const health = healthScores[prop.id];
 
                 return (
-                  <div
+                  <SpotlightCard
                     key={prop.id}
-                    className="group bg-white/5 hover:bg-white/8 rounded-2xl p-6 border border-white/5 hover:border-white/10 transition-all duration-500 cursor-pointer"
-                    onClick={() => navigate(`/property/${prop.id}`)}
+                    spotlightColor={darkMode ? "rgba(59,130,246,0.08)" : "rgba(59,130,246,0.05)"}
+                    className={`group rounded-2xl transition-all duration-500 cursor-pointer animate-fade-up ${darkMode
+                      ? 'bg-white/5 hover:bg-white/8 border border-white/5 hover:border-white/15'
+                      : 'bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md'
+                      }`}
                     style={{ animationDelay: `${index * 50}ms` }}
+                    onClick={() => navigate(`/property/${prop.id}`)}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h4 className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors duration-300">
-                            {prop.name}
-                          </h4>
-                          {prop.sub_status === 'ACTIVE' ? (
-                            <span className="flex items-center gap-1 bg-emerald-500/20 text-emerald-400 text-xs px-2 py-0.5 rounded-full font-medium">
-                              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
-                              Active
-                            </span>
-                          ) : (
-                            <span className="bg-white/10 text-white/50 text-xs px-2 py-0.5 rounded-full font-medium">
-                              Inactive
-                            </span>
+                    <div className="relative z-10 p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h4 className={`text-lg font-semibold transition-colors duration-300 ${darkMode
+                              ? 'text-white group-hover:text-blue-400'
+                              : 'text-gray-900 group-hover:text-blue-600'
+                              }`}>
+                              {prop.name}
+                            </h4>
+                            {prop.sub_status === 'ACTIVE' ? (
+                              <span className="flex items-center gap-1 bg-emerald-500/20 text-emerald-500 text-xs px-2.5 py-1 rounded-full font-medium">
+                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                                Active
+                              </span>
+                            ) : (
+                              <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${darkMode ? 'bg-white/10 text-white/50' : 'bg-gray-100 text-gray-500'
+                                }`}>
+                                Inactive
+                              </span>
+                            )}
+                          </div>
+                          <div className={`flex items-center gap-2 text-sm ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>
+                            <MapPinIcon className="h-4 w-4" />
+                            {prop.address}
+                          </div>
+
+                          {/* Health Score */}
+                          {health && (
+                            <div className="mt-4 flex items-center gap-3">
+                              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${getHealthBg(health.score)} flex items-center justify-center border ${darkMode ? 'border-white/10' : 'border-gray-200'}`}>
+                                <span className={`text-lg font-bold ${getHealthColor(health.score)}`}>
+                                  {health.score}
+                                </span>
+                              </div>
+                              <div>
+                                <p className={`text-sm font-medium ${getHealthColor(health.score)}`}>
+                                  {health.score >= 70 ? 'Healthy' : health.score >= 40 ? 'Needs Attention' : 'At Risk'}
+                                </p>
+                                <p className={`text-xs ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>
+                                  {health.completedVisits} visits • Last: {health.lastVisit ? formatTimeAgo(health.lastVisit) : 'Never'}
+                                </p>
+                              </div>
+                            </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 text-white/40 text-sm">
-                          <MapPinIcon className="h-4 w-4" />
-                          {prop.address}
+
+                        <div className="flex items-center gap-3">
+                          {prop.sub_status === 'ACTIVE' ? (
+                            <div className="flex items-center gap-2 text-emerald-500 text-sm">
+                              <CheckCircleIcon className="h-5 w-5" />
+                              <span className="hidden sm:inline font-medium">Monitored</span>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSubscribe(prop.id);
+                              }}
+                              disabled={payingPropertyId === prop.id}
+                              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-all duration-300 disabled:opacity-50 shadow-lg shadow-blue-500/20"
+                            >
+                              {payingPropertyId === prop.id ? (
+                                <>
+                                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                  Processing...
+                                </>
+                              ) : (
+                                <>
+                                  <SparklesIcon className="h-4 w-4" />
+                                  Activate • GHS 50
+                                </>
+                              )}
+                            </button>
+                          )}
+                          <ArrowRightIcon className={`h-5 w-5 transition-all duration-300 group-hover:translate-x-1 ${darkMode ? 'text-white/30 group-hover:text-white/60' : 'text-gray-300 group-hover:text-gray-500'
+                            }`} />
                         </div>
-
-                        {/* Health Score */}
-                        {health && (
-                          <div className="mt-4 flex items-center gap-3">
-                            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${getHealthBg(health.score)} flex items-center justify-center border border-white/10`}>
-                              <span className={`text-lg font-bold ${getHealthColor(health.score)}`}>
-                                {health.score}
-                              </span>
-                            </div>
-                            <div>
-                              <p className={`text-sm font-medium ${getHealthColor(health.score)}`}>
-                                {health.score >= 70 ? 'Healthy' : health.score >= 40 ? 'Needs Attention' : 'At Risk'}
-                              </p>
-                              <p className="text-xs text-white/40">
-                                {health.completedVisits} visits • Last: {health.lastVisit ? formatTimeAgo(health.lastVisit) : 'Never'}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        {prop.sub_status === 'ACTIVE' ? (
-                          <div className="flex items-center gap-2 text-emerald-400 text-sm">
-                            <CheckCircleIcon className="h-5 w-5" />
-                            <span className="hidden sm:inline font-medium">Monitored</span>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSubscribe(prop.id);
-                            }}
-                            disabled={payingPropertyId === prop.id}
-                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-full text-sm font-semibold hover:opacity-90 transition-all duration-300 disabled:opacity-50"
-                          >
-                            {payingPropertyId === prop.id ? (
-                              <>
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                Processing...
-                              </>
-                            ) : (
-                              <>
-                                <SparklesIcon className="h-4 w-4" />
-                                Activate • GHS 50
-                              </>
-                            )}
-                          </button>
-                        )}
-                        <ArrowRightIcon className="h-5 w-5 text-white/30 group-hover:text-white/60 group-hover:translate-x-1 transition-all duration-300" />
                       </div>
                     </div>
-                  </div>
+                  </SpotlightCard>
                 );
               })
             ) : (
-              <div className="text-center py-20 px-6 bg-white/5 rounded-3xl border border-dashed border-white/10">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
-                  <HomeModernIcon className="h-8 w-8 text-white/20" />
+              <GlassCard className={`text-center py-20 px-6 !border-dashed ${darkMode ? '!border-white/10' : '!border-gray-300'}`}>
+                <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${darkMode ? 'bg-white/5' : 'bg-gray-100'
+                  }`}>
+                  <HomeModernIcon className={`h-8 w-8 ${darkMode ? 'text-white/20' : 'text-gray-400'}`} />
                 </div>
-                <h3 className="text-lg font-medium text-white/80 mb-2">No properties yet</h3>
-                <p className="text-sm text-white/40 mb-6 max-w-xs mx-auto">
+                <h3 className={`text-lg font-medium mb-2 ${darkMode ? 'text-white/80' : 'text-gray-700'}`}>
+                  No properties yet
+                </h3>
+                <p className={`text-sm mb-6 max-w-xs mx-auto ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>
                   Add your first property to start monitoring with our scouts.
                 </p>
                 <button
                   onClick={() => navigate('/add-property')}
-                  className="inline-flex items-center gap-2 px-5 py-3 bg-white text-slate-900 rounded-full text-sm font-semibold hover:bg-white/90 transition-all duration-300"
+                  className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-300 shadow-lg ${darkMode
+                    ? 'bg-white text-slate-900 hover:bg-white/90'
+                    : 'bg-gray-900 text-white hover:bg-gray-800'
+                    }`}
                 >
                   <PlusIcon className="h-4 w-4" />
                   Add Your First Property
                 </button>
-              </div>
+              </GlassCard>
             )}
           </div>
         )}
@@ -408,35 +457,44 @@ const Dashboard = () => {
         {activeTab === 'activity' && (
           <div className="space-y-3">
             {activities.length === 0 ? (
-              <div className="text-center py-16 px-6 bg-white/5 rounded-3xl border border-white/10">
-                <BellIcon className="h-12 w-12 text-white/20 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-white/80">No activity yet</h3>
-                <p className="text-sm text-white/40 mt-2">
+              <GlassCard className={`text-center py-16 px-6 ${darkMode ? '!border-white/10' : '!border-gray-200'}`}>
+                <BellIcon className={`h-12 w-12 mx-auto mb-4 ${darkMode ? 'text-white/20' : 'text-gray-300'}`} />
+                <h3 className={`text-lg font-medium ${darkMode ? 'text-white/80' : 'text-gray-700'}`}>
+                  No activity yet
+                </h3>
+                <p className={`text-sm mt-2 ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>
                   Activity will appear here when scouts visit your properties.
                 </p>
-              </div>
+              </GlassCard>
             ) : (
               activities.map((activity, index) => (
-                <div
+                <GlassCard
                   key={activity.id || index}
-                  className="bg-white/5 rounded-xl p-4 border border-white/5 hover:bg-white/10 transition-all cursor-pointer"
+                  className="p-4 cursor-pointer"
                   onClick={() => activity.property_id && navigate(`/property/${activity.property_id}`)}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-lg">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${darkMode ? 'bg-white/10' : 'bg-gray-100'
+                      }`}>
                       {getActivityIcon(activity.action_type)}
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium text-white">{activity.title}</p>
-                      <p className="text-sm text-white/50 mt-0.5">{activity.description}</p>
+                      <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                        {activity.title}
+                      </p>
+                      <p className={`text-sm mt-0.5 ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>
+                        {activity.description}
+                      </p>
                       <div className="flex items-center gap-2 mt-2">
-                        <span className="text-xs text-blue-400">{activity.property_name}</span>
-                        <span className="text-xs text-white/30">•</span>
-                        <span className="text-xs text-white/30">{formatTimeAgo(activity.created_at)}</span>
+                        <span className="text-xs text-blue-500 font-medium">{activity.property_name}</span>
+                        <span className={`text-xs ${darkMode ? 'text-white/30' : 'text-gray-400'}`}>•</span>
+                        <span className={`text-xs ${darkMode ? 'text-white/30' : 'text-gray-400'}`}>
+                          {formatTimeAgo(activity.created_at)}
+                        </span>
                       </div>
                     </div>
                   </div>
-                </div>
+                </GlassCard>
               ))
             )}
           </div>
@@ -444,11 +502,6 @@ const Dashboard = () => {
 
       </main>
 
-      {/* Background Gradients */}
-      <div className="fixed inset-0 pointer-events-none z-[-1]">
-        <div className="absolute top-20 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl"></div>
-      </div>
       {/* Approval Reminder Modal */}
       {showApprovalModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -456,15 +509,19 @@ const Dashboard = () => {
             className="absolute inset-0 cursor-default"
             onClick={() => setShowApprovalModal(false)}
           />
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-white/10 relative overflow-hidden z-10 animate-in fade-in zoom-in duration-300">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-blue-500"></div>
+          <GlassCard className={`max-w-sm w-full relative overflow-hidden z-10 animate-scale-in !p-6 ${darkMode ? '!bg-slate-900/95' : '!bg-white/95'
+            }`}>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-blue-500" />
 
             <div className="text-center mb-6 mt-2">
-              <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${darkMode ? 'bg-purple-500/10' : 'bg-purple-50'
+                }`}>
                 <BellIcon className="h-8 w-8 text-purple-500 animate-bounce" />
               </div>
-              <h3 className="text-xl font-bold dark:text-white text-gray-900 mb-2">Action Required</h3>
-              <p className="dark:text-white/60 text-gray-500">
+              <h3 className={`text-xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                Action Required
+              </h3>
+              <p className={darkMode ? 'text-white/60' : 'text-gray-500'}>
                 You have <span className="font-bold text-purple-500">{pendingCount}</span> {pendingCount === 1 ? 'visit' : 'visits'} waiting for your approval.
               </p>
             </div>
@@ -472,23 +529,26 @@ const Dashboard = () => {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowApprovalModal(false)}
-                className="flex-1 py-3 rounded-xl font-medium text-sm dark:bg-white/5 bg-gray-100 dark:text-white/60 text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
+                className={`flex-1 py-3 rounded-xl font-medium text-sm transition-colors ${darkMode
+                  ? 'bg-white/5 text-white/60 hover:bg-white/10'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  }`}
               >
                 Remind Me Later
               </button>
               <button
-                onClick={() => {
-                  setShowApprovalModal(false);
-                  // Optionally navigate or just let them find it
-                }}
+                onClick={() => setShowApprovalModal(false)}
                 className="flex-1 py-3 rounded-xl font-bold text-sm bg-purple-600 text-white hover:bg-purple-500 shadow-lg shadow-purple-500/20 transition-all"
               >
                 Review Now
               </button>
             </div>
-          </div>
+          </GlassCard>
         </div>
       )}
+
+      {/* Bottom Navigation */}
+      <BottomNav />
     </div>
   );
 };

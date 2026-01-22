@@ -1,112 +1,251 @@
-import React, { useState, useContext } from 'react';
-import axios from 'axios';
-import { useNavigate, Link } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext'; // Import your AuthContext
+import { useState, useContext } from "react";
+import api from "../api";
+import { AuthContext } from "../context/AuthContext";
+import { ThemeContext } from "../context/ThemeContext";
+import { useNavigate, Link } from "react-router-dom";
+import { BriefcaseIcon, UserPlusIcon, ArrowLeftIcon, SunIcon, MoonIcon } from "@heroicons/react/24/outline";
+
+// Magic UI Components
+import Particles from "../components/magicui/Particles";
+import ShineBorder from "../components/magicui/ShineBorder";
+import ShimmerButton from "../components/magicui/ShimmerButton";
+import AnimatedGradient from "../components/magicui/AnimatedGradient";
+import GridPattern from "../components/magicui/GridPattern";
 
 const ScoutSignup = () => {
-  const navigate = useNavigate();
-  const { login } = useContext(AuthContext); // Use your context login function if available, or manual
-
   const [formData, setFormData] = useState({
-    full_name: '',
-    email: '',
-    phone: '',
-    password: ''
+    full_name: "",
+    email: "",
+    phone_number: "",
+    password: "",
   });
+  const [loading, setLoading] = useState(false);
+  const { login } = useContext(AuthContext);
+  const { darkMode, toggleDarkMode } = useContext(ThemeContext);
+  const navigate = useNavigate();
 
-  const { full_name, email, phone, password } = formData;
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-  const onChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
-
-  const onSubmit = async e => {
+  const handleRegister = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      const res = await axios.post('https://sitesee-api.onrender.com/api/auth/register', {
-        full_name,
-        email,
-        phone,
-        password,
-        role: 'SCOUT' // <--- Force the role to SCOUT
+      const res = await api.post("/auth/register", {
+        ...formData,
+        role: "SCOUT"
       });
 
-      // Save token
-      localStorage.setItem('token', res.data.token);
-      
-      // If you are using AuthContext, update it:
-      // login(res.data.token); 
-
-      // Redirect immediately to Scout Dashboard
-      navigate('/scout');
+      login(res.data.user, res.data.token);
+      alert("Scout account created successfully! Welcome to the team.");
+      navigate("/scout");
 
     } catch (err) {
-      console.error(err);
-      alert('Error signing up. Email might be taken.');
+      alert("Registration Failed: " + (err.response?.data?.error || "Server Error"));
+    } finally {
+      setLoading(false);
     }
   };
 
+  const inputClasses = `w-full px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-300 outline-none ${darkMode
+      ? 'bg-white/5 border border-white/10 text-white placeholder:text-slate-500 focus:border-amber-500/50 focus:bg-white/10 focus:ring-2 focus:ring-amber-500/20'
+      : 'bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/20'
+    }`;
+
+  const labelClasses = `block text-xs font-semibold tracking-wide uppercase ${darkMode ? 'text-slate-400' : 'text-gray-500'}`;
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4">
-      <div className="max-w-md w-full bg-gray-800 p-8 rounded-xl shadow-2xl border border-gray-700">
-        <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-yellow-400">⚡ Become a Scout</h1>
-            <p className="text-gray-400 mt-2">Join the SiteSee field team.</p>
+    <div className={`min-h-screen flex items-center justify-center font-sans p-4 relative overflow-hidden transition-colors duration-500 ${darkMode ? 'bg-slate-950' : 'bg-gray-50'}`}>
+
+      {/* Background Effects */}
+      {darkMode ? (
+        <>
+          <Particles
+            className="absolute inset-0 z-0"
+            quantity={80}
+            staticity={30}
+            ease={70}
+            size={0.4}
+            color="#f59e0b"
+            vx={0.06}
+            vy={0.03}
+          />
+          <div className="absolute inset-0 z-[1]">
+            <AnimatedGradient
+              colors={["#f59e0b", "#ea580c", "#dc2626"]}
+              speed={12}
+              blur="heavy"
+            />
+          </div>
+        </>
+      ) : (
+        <>
+          <GridPattern
+            width={32}
+            height={32}
+            className="absolute inset-0 z-0 opacity-40"
+          />
+          <div className="absolute inset-0 z-[1]" style={{
+            background: `
+              radial-gradient(at 40% 20%, rgba(245, 158, 11, 0.15) 0, transparent 50%),
+              radial-gradient(at 80% 0%, rgba(234, 88, 12, 0.1) 0, transparent 50%),
+              radial-gradient(at 0% 50%, rgba(251, 191, 36, 0.1) 0, transparent 50%)
+            `
+          }} />
+        </>
+      )}
+
+      {/* Back Button */}
+      <button
+        onClick={() => navigate('/')}
+        className={`absolute top-6 left-6 z-50 p-3 rounded-full transition-all duration-300 ${darkMode
+            ? 'bg-white/10 hover:bg-white/20 text-white'
+            : 'bg-gray-900/10 hover:bg-gray-900/20 text-gray-900'
+          }`}
+      >
+        <ArrowLeftIcon className="h-5 w-5" />
+      </button>
+
+      {/* Theme Toggle */}
+      <button
+        onClick={toggleDarkMode}
+        className={`absolute top-6 right-6 z-50 p-3 rounded-full transition-all duration-300 ${darkMode
+            ? 'bg-white/10 hover:bg-white/20 text-white'
+            : 'bg-gray-900/10 hover:bg-gray-900/20 text-gray-900'
+          }`}
+      >
+        {darkMode ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
+      </button>
+
+      {/* Register Card */}
+      <ShineBorder
+        borderRadius={28}
+        borderWidth={2}
+        duration={12}
+        color={darkMode ? ["#f59e0b", "#ea580c", "#dc2626"] : ["#f59e0b", "#fbbf24", "#fcd34d"]}
+        className={`relative z-10 !p-0 w-full max-w-md transition-all duration-500 ${darkMode
+            ? '!bg-slate-900/90 backdrop-blur-2xl border-white/10 shadow-2xl shadow-amber-500/10'
+            : '!bg-white/90 backdrop-blur-2xl border-gray-200/80 shadow-2xl shadow-gray-900/10'
+          }`}
+      >
+        <div className="p-8 sm:p-10 animate-fade-up">
+
+          {/* Logo Section */}
+          <div className="flex flex-col items-center mb-8">
+            <div className="relative mb-5">
+              <div className={`absolute inset-0 blur-2xl opacity-50 rounded-full ${darkMode ? 'bg-amber-500' : 'bg-amber-400'}`} />
+              <div className="relative bg-gradient-to-br from-amber-500 to-orange-500 text-white p-4 rounded-2xl shadow-lg shadow-amber-500/30">
+                <BriefcaseIcon className="h-8 w-8" />
+              </div>
+            </div>
+            <h1 className={`text-2xl font-bold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              Become a Scout
+            </h1>
+            <p className={`text-sm font-medium text-center ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>
+              Join our team and start earning today.
+            </p>
+          </div>
+
+          {/* Registration Form */}
+          <form onSubmit={handleRegister} className="space-y-4">
+            {/* Full Name */}
+            <div className="space-y-2">
+              <label className={labelClasses}>Full Name</label>
+              <input
+                name="full_name"
+                placeholder="John Doe"
+                className={inputClasses}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            {/* Phone Number */}
+            <div className="space-y-2">
+              <label className={labelClasses}>Phone Number</label>
+              <input
+                name="phone_number"
+                placeholder="055 123 4567"
+                className={inputClasses}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            {/* Email */}
+            <div className="space-y-2">
+              <label className={labelClasses}>Email Address</label>
+              <input
+                name="email"
+                type="email"
+                placeholder="scout@example.com"
+                className={inputClasses}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            {/* Password */}
+            <div className="space-y-2">
+              <label className={labelClasses}>Password</label>
+              <input
+                name="password"
+                type="password"
+                placeholder="••••••••"
+                className={inputClasses}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            {/* Submit Button */}
+            <div className="pt-2">
+              <ShimmerButton
+                type="submit"
+                disabled={loading}
+                shimmerColor={darkMode ? "#fbbf24" : "#f59e0b"}
+                shimmerSize="0.08em"
+                shimmerDuration="2.5s"
+                borderRadius="14px"
+                background={darkMode
+                  ? "linear-gradient(135deg, #f59e0b 0%, #ea580c 50%, #dc2626 100%)"
+                  : "linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)"
+                }
+                className="w-full font-bold text-sm disabled:opacity-60 gap-2 !py-4"
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Creating Account...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    Join as Scout
+                    <UserPlusIcon className="h-4 w-4" />
+                  </span>
+                )}
+              </ShimmerButton>
+            </div>
+          </form>
+
+          {/* Login Link */}
+          <div className="mt-6 text-center">
+            <p className={`text-sm ${darkMode ? 'text-slate-500' : 'text-gray-500'}`}>
+              Already a scout?{' '}
+              <Link
+                to="/scout-login"
+                className={`font-semibold transition-colors ${darkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}`}
+              >
+                Log In
+              </Link>
+            </p>
+          </div>
         </div>
-
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div>
-            <label className="block text-gray-400 text-sm font-bold mb-1">Full Name</label>
-            <input 
-                type="text" 
-                name="full_name" 
-                value={full_name} 
-                onChange={onChange} 
-                required 
-                className="w-full bg-gray-700 text-white border border-gray-600 rounded p-3 focus:outline-none focus:border-yellow-400"
-            />
-          </div>
-          <div>
-            <label className="block text-gray-400 text-sm font-bold mb-1">Email Address</label>
-            <input 
-                type="email" 
-                name="email" 
-                value={email} 
-                onChange={onChange} 
-                required 
-                className="w-full bg-gray-700 text-white border border-gray-600 rounded p-3 focus:outline-none focus:border-yellow-400"
-            />
-          </div>
-          <div>
-            <label className="block text-gray-400 text-sm font-bold mb-1">Phone Number</label>
-            <input 
-                type="text" 
-                name="phone" 
-                value={phone} 
-                onChange={onChange} 
-                required 
-                className="w-full bg-gray-700 text-white border border-gray-600 rounded p-3 focus:outline-none focus:border-yellow-400"
-            />
-          </div>
-          <div>
-            <label className="block text-gray-400 text-sm font-bold mb-1">Password</label>
-            <input 
-                type="password" 
-                name="password" 
-                value={password} 
-                onChange={onChange} 
-                required 
-                className="w-full bg-gray-700 text-white border border-gray-600 rounded p-3 focus:outline-none focus:border-yellow-400"
-            />
-          </div>
-
-          <button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 rounded-lg transition transform hover:scale-105">
-            Create Scout Account
-          </button>
-        </form>
-
-        <p className="text-center text-gray-500 mt-6 text-sm">
-          Already a scout? <Link to="/login" className="text-yellow-400 hover:underline">Login here</Link>
-        </p>
-      </div>
+      </ShineBorder>
     </div>
   );
 };

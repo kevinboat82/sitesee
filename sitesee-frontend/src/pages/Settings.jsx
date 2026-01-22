@@ -16,7 +16,12 @@ import {
     EnvelopeIcon,
     MapPinIcon,
     CameraIcon
-} from '@heroicons/react/24/solid';
+} from '@heroicons/react/24/outline';
+
+// Magic UI Components
+import GlassCard from '../components/magicui/GlassCard';
+import AnimatedGradient from '../components/magicui/AnimatedGradient';
+import BottomNav from '../components/BottomNav';
 
 const Settings = () => {
     const { user, logout } = useContext(AuthContext);
@@ -73,17 +78,57 @@ const Settings = () => {
         }
     };
 
-    // Determine if user is a scout
     const isScout = user?.role === 'SCOUT';
 
+    const inputClasses = `w-full px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-300 outline-none ${darkMode
+        ? 'bg-white/5 border border-white/10 text-white placeholder:text-slate-500 focus:border-blue-500/50 focus:bg-white/10 focus:ring-2 focus:ring-blue-500/20 disabled:text-white/50'
+        : 'bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 disabled:text-gray-500 disabled:bg-gray-100'
+        }`;
+
+    const labelClasses = `block text-sm mb-2 ${darkMode ? 'text-white/50' : 'text-gray-500'}`;
+
+    // Toggle Switch Component
+    const ToggleSwitch = ({ enabled, onToggle }) => (
+        <button
+            onClick={onToggle}
+            className={`relative w-12 h-7 rounded-full transition-all duration-300 ${enabled
+                ? 'bg-blue-500'
+                : darkMode ? 'bg-white/20' : 'bg-gray-300'
+                }`}
+        >
+            <span
+                className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-300 ${enabled ? 'left-6' : 'left-1'
+                    }`}
+            />
+        </button>
+    );
+
     return (
-        <div className={`min-h-screen ${darkMode ? 'bg-slate-950 text-white' : 'bg-gray-100 text-gray-900'}`}>
+        <div className={`min-h-screen font-sans transition-colors duration-500 ${darkMode ? 'bg-slate-950 text-white' : 'bg-gray-50 text-gray-900'}`}>
+
+            {/* Background */}
+            <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+                {darkMode && (
+                    <AnimatedGradient
+                        colors={["#3b82f6", "#8b5cf6", "#06b6d4"]}
+                        speed={20}
+                        blur="heavy"
+                    />
+                )}
+            </div>
+
             {/* Header */}
-            <header className={`sticky top-0 z-50 backdrop-blur-xl ${darkMode ? 'bg-slate-950/80 border-white/5' : 'bg-white/80 border-gray-200'} border-b`}>
+            <header className={`sticky top-0 z-50 backdrop-blur-2xl transition-colors duration-500 ${darkMode
+                ? 'bg-slate-950/80 border-white/5'
+                : 'bg-white/80 border-gray-200'
+                } border-b`}>
                 <div className="max-w-2xl mx-auto px-6 py-4 flex items-center gap-4">
                     <button
                         onClick={() => navigate(-1)}
-                        className={`p-2 rounded-full ${darkMode ? 'hover:bg-white/10' : 'hover:bg-gray-200'} transition-colors`}
+                        className={`p-2.5 rounded-xl transition-all duration-300 ${darkMode
+                            ? 'hover:bg-white/10 text-white/70'
+                            : 'hover:bg-gray-100 text-gray-600'
+                            }`}
                     >
                         <ArrowLeftIcon className="h-5 w-5" />
                     </button>
@@ -91,9 +136,10 @@ const Settings = () => {
                 </div>
             </header>
 
-            <main className="max-w-2xl mx-auto px-6 py-8 space-y-6">
+            <main className="relative z-10 max-w-2xl mx-auto px-6 py-8 pb-28 space-y-6">
+
                 {/* Profile Section */}
-                <section className={`rounded-2xl p-6 ${darkMode ? 'bg-white/5 border border-white/10' : 'bg-white border border-gray-200'}`}>
+                <GlassCard className="p-6">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-lg font-bold flex items-center gap-2">
                             <UserCircleIcon className="h-5 w-5 text-blue-500" />
@@ -102,7 +148,10 @@ const Settings = () => {
                         {!editingProfile ? (
                             <button
                                 onClick={() => setEditingProfile(true)}
-                                className={`text-sm px-3 py-1.5 rounded-lg ${darkMode ? 'bg-white/10 hover:bg-white/15' : 'bg-gray-100 hover:bg-gray-200'} transition-colors flex items-center gap-1`}
+                                className={`text-sm px-4 py-2 rounded-xl flex items-center gap-2 transition-all duration-300 ${darkMode
+                                    ? 'bg-white/10 hover:bg-white/15 text-white/80'
+                                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                    }`}
                             >
                                 <PencilIcon className="h-3.5 w-3.5" />
                                 Edit
@@ -111,14 +160,14 @@ const Settings = () => {
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => setEditingProfile(false)}
-                                    className="text-sm px-3 py-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
+                                    className="text-sm px-3 py-2 rounded-xl text-red-400 hover:bg-red-500/10 transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleSaveProfile}
                                     disabled={saving}
-                                    className="text-sm px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors flex items-center gap-1"
+                                    className="text-sm px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition-colors flex items-center gap-1 disabled:opacity-50"
                                 >
                                     <CheckIcon className="h-3.5 w-3.5" />
                                     {saving ? 'Saving...' : 'Save'}
@@ -129,31 +178,33 @@ const Settings = () => {
 
                     <div className="space-y-4">
                         <div>
-                            <label className={`block text-sm ${darkMode ? 'text-white/50' : 'text-gray-500'} mb-1`}>Full Name</label>
+                            <label className={labelClasses}>Full Name</label>
                             <input
                                 type="text"
                                 value={profile.full_name}
                                 onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
                                 disabled={!editingProfile}
-                                className={`w-full px-4 py-3 rounded-xl ${darkMode ? 'bg-white/5 border-white/10 disabled:text-white/70' : 'bg-gray-50 border-gray-200 disabled:text-gray-600'} border focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all`}
+                                className={inputClasses}
                             />
                         </div>
 
                         <div>
-                            <label className={`block text-sm ${darkMode ? 'text-white/50' : 'text-gray-500'} mb-1 flex items-center gap-2`}>
+                            <label className={`${labelClasses} flex items-center gap-2`}>
                                 <EnvelopeIcon className="h-4 w-4" /> Email
                             </label>
                             <input
                                 type="email"
                                 value={profile.email}
                                 disabled
-                                className={`w-full px-4 py-3 rounded-xl ${darkMode ? 'bg-white/5 border-white/10 text-white/50' : 'bg-gray-100 border-gray-200 text-gray-500'} border cursor-not-allowed`}
+                                className={`${inputClasses} cursor-not-allowed opacity-60`}
                             />
-                            <p className={`text-xs mt-1 ${darkMode ? 'text-white/30' : 'text-gray-400'}`}>Email cannot be changed</p>
+                            <p className={`text-xs mt-1.5 ${darkMode ? 'text-white/30' : 'text-gray-400'}`}>
+                                Email cannot be changed
+                            </p>
                         </div>
 
                         <div>
-                            <label className={`block text-sm ${darkMode ? 'text-white/50' : 'text-gray-500'} mb-1 flex items-center gap-2`}>
+                            <label className={`${labelClasses} flex items-center gap-2`}>
                                 <PhoneIcon className="h-4 w-4" /> Phone Number
                             </label>
                             <input
@@ -162,12 +213,12 @@ const Settings = () => {
                                 onChange={(e) => setProfile({ ...profile, phone_number: e.target.value })}
                                 disabled={!editingProfile}
                                 placeholder="e.g. 0241234567"
-                                className={`w-full px-4 py-3 rounded-xl ${darkMode ? 'bg-white/5 border-white/10 disabled:text-white/70 placeholder:text-white/20' : 'bg-gray-50 border-gray-200 disabled:text-gray-600 placeholder:text-gray-400'} border focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all`}
+                                className={inputClasses}
                             />
                         </div>
 
                         <div>
-                            <label className={`block text-sm ${darkMode ? 'text-white/50' : 'text-gray-500'} mb-1 flex items-center gap-2`}>
+                            <label className={`${labelClasses} flex items-center gap-2`}>
                                 <MapPinIcon className="h-4 w-4" /> Address
                             </label>
                             <input
@@ -176,14 +227,14 @@ const Settings = () => {
                                 onChange={(e) => setProfile({ ...profile, address: e.target.value })}
                                 disabled={!editingProfile}
                                 placeholder="Your location"
-                                className={`w-full px-4 py-3 rounded-xl ${darkMode ? 'bg-white/5 border-white/10 disabled:text-white/70 placeholder:text-white/20' : 'bg-gray-50 border-gray-200 disabled:text-gray-600 placeholder:text-gray-400'} border focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all`}
+                                className={inputClasses}
                             />
                         </div>
                     </div>
-                </section>
+                </GlassCard>
 
                 {/* Appearance Section */}
-                <section className={`rounded-2xl p-6 ${darkMode ? 'bg-white/5 border border-white/10' : 'bg-white border border-gray-200'}`}>
+                <GlassCard className="p-6">
                     <h2 className="text-lg font-bold flex items-center gap-2 mb-6">
                         {darkMode ? <MoonIcon className="h-5 w-5 text-purple-400" /> : <SunIcon className="h-5 w-5 text-amber-400" />}
                         Appearance
@@ -192,27 +243,22 @@ const Settings = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="font-medium">Dark Mode</p>
-                            <p className={`text-sm ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>Toggle between light and dark themes</p>
+                            <p className={`text-sm ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>
+                                Toggle between light and dark themes
+                            </p>
                         </div>
-                        <button
-                            onClick={toggleDarkMode}
-                            className={`relative w-14 h-8 rounded-full transition-colors ${darkMode ? 'bg-blue-600' : 'bg-gray-300'}`}
-                        >
-                            <span
-                                className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-transform ${darkMode ? 'left-7' : 'left-1'}`}
-                            />
-                        </button>
+                        <ToggleSwitch enabled={darkMode} onToggle={toggleDarkMode} />
                     </div>
-                </section>
+                </GlassCard>
 
                 {/* Notifications Section */}
-                <section className={`rounded-2xl p-6 ${darkMode ? 'bg-white/5 border border-white/10' : 'bg-white border border-gray-200'}`}>
+                <GlassCard className="p-6">
                     <h2 className="text-lg font-bold flex items-center gap-2 mb-6">
                         <BellIcon className="h-5 w-5 text-amber-400" />
                         Notifications
                     </h2>
 
-                    <div className="space-y-4">
+                    <div className="space-y-5">
                         {[
                             { key: 'email_updates', label: 'Email Updates', desc: 'Receive updates via email' },
                             { key: 'sms_alerts', label: 'SMS Alerts', desc: 'Get text message notifications' },
@@ -222,76 +268,86 @@ const Settings = () => {
                             <div key={item.key} className="flex items-center justify-between">
                                 <div>
                                     <p className="font-medium">{item.label}</p>
-                                    <p className={`text-sm ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>{item.desc}</p>
+                                    <p className={`text-sm ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>
+                                        {item.desc}
+                                    </p>
                                 </div>
-                                <button
-                                    onClick={() => setNotifications(prev => ({ ...prev, [item.key]: !prev[item.key] }))}
-                                    className={`relative w-12 h-7 rounded-full transition-colors ${notifications[item.key] ? 'bg-blue-600' : darkMode ? 'bg-white/20' : 'bg-gray-300'}`}
-                                >
-                                    <span
-                                        className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${notifications[item.key] ? 'left-6' : 'left-1'}`}
-                                    />
-                                </button>
+                                <ToggleSwitch
+                                    enabled={notifications[item.key]}
+                                    onToggle={() => setNotifications(prev => ({ ...prev, [item.key]: !prev[item.key] }))}
+                                />
                             </div>
                         ))}
                     </div>
-                </section>
+                </GlassCard>
 
                 {/* Security Section */}
-                <section className={`rounded-2xl p-6 ${darkMode ? 'bg-white/5 border border-white/10' : 'bg-white border border-gray-200'}`}>
+                <GlassCard className="p-6">
                     <h2 className="text-lg font-bold flex items-center gap-2 mb-6">
                         <ShieldCheckIcon className="h-5 w-5 text-emerald-400" />
                         Security & Privacy
                     </h2>
 
-                    <div className="space-y-3">
-                        <button className={`w-full text-left px-4 py-3 rounded-xl ${darkMode ? 'hover:bg-white/5' : 'hover:bg-gray-50'} transition-colors`}>
-                            <p className="font-medium">Change Password</p>
-                            <p className={`text-sm ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>Update your account password</p>
-                        </button>
-
-                        <button className={`w-full text-left px-4 py-3 rounded-xl ${darkMode ? 'hover:bg-white/5' : 'hover:bg-gray-50'} transition-colors`}>
-                            <p className="font-medium">Privacy Settings</p>
-                            <p className={`text-sm ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>Control your data sharing preferences</p>
-                        </button>
-
-                        <button className={`w-full text-left px-4 py-3 rounded-xl ${darkMode ? 'hover:bg-white/5' : 'hover:bg-gray-50'} transition-colors`}>
-                            <p className="font-medium">Download My Data</p>
-                            <p className={`text-sm ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>Export all your data</p>
-                        </button>
+                    <div className="space-y-2">
+                        {[
+                            { label: 'Change Password', desc: 'Update your account password' },
+                            { label: 'Privacy Settings', desc: 'Control your data sharing preferences' },
+                            { label: 'Download My Data', desc: 'Export all your data' }
+                        ].map((item, idx) => (
+                            <button
+                                key={idx}
+                                className={`w-full text-left px-4 py-4 rounded-xl transition-all duration-300 ${darkMode
+                                    ? 'hover:bg-white/5'
+                                    : 'hover:bg-gray-50'
+                                    }`}
+                            >
+                                <p className="font-medium">{item.label}</p>
+                                <p className={`text-sm ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>
+                                    {item.desc}
+                                </p>
+                            </button>
+                        ))}
                     </div>
-                </section>
+                </GlassCard>
 
-                {/* Scout-specific Settings */}
+                {/* Scout Preferences */}
                 {isScout && (
-                    <section className={`rounded-2xl p-6 ${darkMode ? 'bg-white/5 border border-white/10' : 'bg-white border border-gray-200'}`}>
+                    <GlassCard className="p-6">
                         <h2 className="text-lg font-bold flex items-center gap-2 mb-6">
                             <CameraIcon className="h-5 w-5 text-amber-400" />
                             Scout Preferences
                         </h2>
 
-                        <div className="space-y-4">
+                        <div className="space-y-5">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="font-medium">Auto-watermark Photos</p>
-                                    <p className={`text-sm ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>Add verification info to photos</p>
+                                    <p className={`text-sm ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>
+                                        Add verification info to photos
+                                    </p>
                                 </div>
-                                <span className="px-2 py-1 text-xs rounded-full bg-emerald-500/20 text-emerald-400">Always On</span>
+                                <span className="px-3 py-1.5 text-xs rounded-full bg-emerald-500/20 text-emerald-400 font-semibold">
+                                    Always On
+                                </span>
                             </div>
 
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="font-medium">GPS Tracking</p>
-                                    <p className={`text-sm ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>Required for photo verification</p>
+                                    <p className={`text-sm ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>
+                                        Required for photo verification
+                                    </p>
                                 </div>
-                                <span className="px-2 py-1 text-xs rounded-full bg-blue-500/20 text-blue-400">Required</span>
+                                <span className="px-3 py-1.5 text-xs rounded-full bg-blue-500/20 text-blue-400 font-semibold">
+                                    Required
+                                </span>
                             </div>
                         </div>
-                    </section>
+                    </GlassCard>
                 )}
 
                 {/* Danger Zone */}
-                <section className={`rounded-2xl p-6 border ${darkMode ? 'border-red-500/30 bg-red-500/5' : 'border-red-200 bg-red-50'}`}>
+                <GlassCard className={`p-6 !border-red-500/30 ${darkMode ? '!bg-red-500/5' : '!bg-red-50'}`}>
                     <h2 className="text-lg font-bold text-red-500 mb-4">Danger Zone</h2>
 
                     <button
@@ -301,11 +357,14 @@ const Settings = () => {
                                 navigate('/');
                             }
                         }}
-                        className="w-full px-4 py-3 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors font-medium"
+                        className={`w-full px-4 py-3.5 rounded-xl border font-medium transition-all duration-300 ${darkMode
+                            ? 'border-red-500/30 text-red-400 hover:bg-red-500/10'
+                            : 'border-red-300 text-red-600 hover:bg-red-100'
+                            }`}
                     >
                         Sign Out
                     </button>
-                </section>
+                </GlassCard>
 
                 {/* Version Info */}
                 <div className={`text-center py-8 ${darkMode ? 'text-white/30' : 'text-gray-400'}`}>
@@ -313,6 +372,9 @@ const Settings = () => {
                     <p className="text-xs mt-1">Version 1.0.0</p>
                 </div>
             </main>
+
+            {/* Bottom Navigation */}
+            <BottomNav />
         </div>
     );
 };

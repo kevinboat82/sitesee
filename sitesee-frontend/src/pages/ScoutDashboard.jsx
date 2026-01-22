@@ -1,17 +1,25 @@
 import { useState, useEffect, useContext } from "react";
 import api from "../api";
 import { AuthContext } from "../context/AuthContext";
+import { ThemeContext } from "../context/ThemeContext";
 import { getCurrentGPS, processFilesWithWatermark } from "../utils/watermark";
 import {
   MapPinIcon, CameraIcon, CheckCircleIcon, ArrowPathIcon,
   ClockIcon, BanknotesIcon, TrophyIcon, ChartBarIcon,
-  DocumentTextIcon, ExclamationTriangleIcon, ShieldCheckIcon
+  DocumentTextIcon, ExclamationTriangleIcon, ShieldCheckIcon,
+  Cog6ToothIcon, SunIcon, MoonIcon
 } from "@heroicons/react/24/solid";
 import { ArrowRightStartOnRectangleIcon, ChevronDownIcon, StarIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 
+// Magic UI Components
+import GlassCard from "../components/magicui/GlassCard";
+import AnimatedGradient from "../components/magicui/AnimatedGradient";
+import ScoutBottomNav from "../components/ScoutBottomNav";
+
 const ScoutDashboard = () => {
   const { user, logout } = useContext(AuthContext);
+  const { darkMode, toggleDarkMode } = useContext(ThemeContext);
   const navigate = useNavigate();
 
   const [jobs, setJobs] = useState([]);
@@ -235,81 +243,102 @@ const ScoutDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen dark:bg-black bg-gray-50 dark:text-white text-gray-900 font-sans transition-colors duration-300">
+    <div className={`min-h-screen font-sans transition-colors duration-500 ${darkMode ? 'bg-slate-950 text-white' : 'bg-gray-50 text-gray-900'}`}>
+
+      {/* Background Effects */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        {darkMode && (
+          <AnimatedGradient
+            colors={["#f59e0b", "#ea580c", "#dc2626"]}
+            speed={20}
+            blur="heavy"
+          />
+        )}
+      </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl dark:bg-black/70 bg-white/80 dark:border-white/10 border-gray-200 border-b">
+      <header className={`sticky top-0 z-50 backdrop-blur-2xl transition-colors duration-500 ${darkMode
+        ? 'bg-slate-950/80 border-white/5'
+        : 'bg-white/80 border-gray-200'
+        } border-b`}>
         <div className="max-w-3xl mx-auto px-6 py-4 flex justify-between items-center">
           <div>
-            <img src="/scout-logo.png" alt="SiteSee Scout" className="h-10 w-auto" />
-            <p className="text-xs dark:text-white/50 text-gray-500 mt-0.5">
+            <img src="/scout-logo.png" alt="SiteSee Scout" className="h-9 w-auto" />
+            <p className={`text-xs mt-0.5 ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>
               Welcome back, {user?.full_name?.split(' ')[0] || 'Scout'}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            {/* Theme Toggle */}
             <button
-              onClick={() => navigate('/settings')}
-              className="flex items-center gap-2 text-sm dark:text-white/60 text-gray-500 hover:text-blue-500 dark:hover:text-white transition-colors duration-300 px-2 py-2 rounded-full dark:hover:bg-white/10 hover:bg-gray-100"
-              title="Settings"
+              onClick={toggleDarkMode}
+              className={`p-2.5 rounded-xl transition-all duration-300 ${darkMode
+                ? 'text-white/60 hover:bg-white/10 hover:text-white'
+                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                }`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-                <path fillRule="evenodd" d="M11.828 2.25c-.916 0-1.699.663-1.85 1.567l-.091.549a.798.798 0 01-.517.608 7.45 7.45 0 00-.478.198.798.798 0 01-.796-.064l-.453-.324a1.875 1.875 0 00-2.416.2l-.243.243a1.875 1.875 0 00-.2 2.416l.324.453a.798.798 0 01.064.796 7.448 7.448 0 00-.198.478.798.798 0 01-.608.517l-.55.092a1.875 1.875 0 00-1.566 1.849v.344c0 .916.663 1.699 1.567 1.85l.549.091c.281.047.508.25.608.517.06.162.127.321.198.478a.798.798 0 01-.064.796l-.324.453a1.875 1.875 0 00.2 2.416l.243.243c.648.648 1.67.733 2.416.2l.453-.324a.798.798 0 01.796-.064c.157.071.316.137.478.198.267.1.47.327.517.608l.092.55c.15.903.932 1.566 1.849 1.566h.344c.916 0 1.699-.663 1.85-1.567l.091-.549a.798.798 0 01.517-.608 7.52 7.52 0 00.478-.198.798.798 0 01.796.064l.453.324a1.875 1.875 0 002.416-.2l.243-.243c.648-.648.733-1.67.2-2.416l-.324-.453a.798.798 0 01-.064-.796c.071-.157.137-.316.198-.478.1-.267.327-.47.608-.517l.55-.091a1.875 1.875 0 001.566-1.85v-.344c0-.916-.663-1.699-1.567-1.85l-.549-.091a.798.798 0 01-.608-.517 7.507 7.507 0 00-.198-.478.798.798 0 01.064-.796l.324-.453a1.875 1.875 0 00-.2-2.416l-.243-.243a1.875 1.875 0 00-2.416-.2l-.453.324a.798.798 0 01-.796.064 7.462 7.462 0 00-.478-.198.798.798 0 01-.517-.608l-.091-.55a1.875 1.875 0 00-1.85-1.566h-.344zM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z" clipRule="evenodd" />
-              </svg>
+              {darkMode ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
             </button>
+            {/* Profile */}
             <button
               onClick={() => navigate('/profile')}
-              className="flex items-center gap-2 text-sm dark:text-white/60 text-gray-500 hover:text-blue-500 dark:hover:text-white transition-colors duration-300 px-2 py-2 rounded-full dark:hover:bg-white/10 hover:bg-gray-100"
+              className={`p-2 rounded-xl transition-all duration-300 ${darkMode ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+                }`}
             >
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-orange-400 flex items-center justify-center text-xs font-bold text-white">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-400 flex items-center justify-center text-xs font-bold text-white shadow-lg shadow-amber-500/20">
                 {user?.full_name?.charAt(0)?.toUpperCase() || '?'}
               </div>
             </button>
+            {/* Logout */}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 text-sm dark:text-white/60 text-gray-500 hover:text-red-500 dark:hover:text-white transition-colors duration-300 px-3 py-2 rounded-full dark:hover:bg-white/10 hover:bg-gray-100"
+              className={`flex items-center gap-2 text-sm ml-2 px-3 py-2 rounded-xl transition-all duration-300 ${darkMode
+                ? 'text-white/60 hover:bg-red-500/10 hover:text-red-400'
+                : 'text-gray-500 hover:bg-red-50 hover:text-red-600'
+                }`}
             >
               <ArrowRightStartOnRectangleIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">Sign Out</span>
+              <span className="hidden sm:inline font-medium">Sign Out</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-3xl mx-auto px-6 py-8">
+      <main className="relative z-10 max-w-3xl mx-auto px-6 py-8 pb-28">
 
         {/* Earnings Card */}
-        <div className="bg-gradient-to-br from-amber-500/20 via-orange-500/10 to-transparent rounded-2xl p-5 border border-amber-500/20 mb-6">
+        <div className={`rounded-2xl p-5 border mb-6 ${darkMode ? 'bg-gradient-to-br from-amber-500/20 via-orange-500/10 to-transparent border-amber-500/20' : 'bg-gradient-to-br from-amber-50 via-orange-50 to-white border-amber-200'}`}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <BanknotesIcon className="h-5 w-5 text-amber-400" />
-              <h3 className="text-sm font-semibold text-white/80">Your Earnings</h3>
+              <BanknotesIcon className="h-5 w-5 text-amber-500" />
+              <h3 className={`text-sm font-semibold ${darkMode ? 'text-white/80' : 'text-gray-700'}`}>Your Earnings</h3>
             </div>
             <button
               onClick={() => setActiveTab('earnings')}
-              className="text-xs text-amber-400 hover:text-amber-300"
+              className="text-xs text-amber-500 hover:text-amber-600 font-medium"
             >
               View Details →
             </button>
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
-              <p className="text-2xl font-bold text-white">
+              <p className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                 GHS {parseFloat(earnings.summary?.week_total || 0).toFixed(0)}
               </p>
-              <p className="text-xs text-white/40">This Week</p>
+              <p className={`text-xs ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>This Week</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-amber-400">
+              <p className="text-2xl font-bold text-amber-500">
                 GHS {parseFloat(earnings.summary?.month_total || 0).toFixed(0)}
               </p>
-              <p className="text-xs text-white/40">This Month</p>
+              <p className={`text-xs ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>This Month</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-white/60">
+              <p className={`text-2xl font-bold ${darkMode ? 'text-white/60' : 'text-gray-600'}`}>
                 GHS {parseFloat(earnings.summary?.pending_payout || 0).toFixed(0)}
               </p>
-              <p className="text-xs text-white/40">Pending</p>
+              <p className={`text-xs ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>Pending</p>
             </div>
           </div>
         </div>
@@ -318,18 +347,18 @@ const ScoutDashboard = () => {
         {achievements.earned.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
-              <TrophyIcon className="h-4 w-4 text-amber-400" />
-              <span className="text-sm font-medium text-white/70">Your Badges</span>
+              <TrophyIcon className="h-4 w-4 text-amber-500" />
+              <span className={`text-sm font-medium ${darkMode ? 'text-white/70' : 'text-gray-600'}`}>Your Badges</span>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-2">
               {achievements.earned.map((ach, i) => (
                 <div
                   key={i}
-                  className="flex-shrink-0 bg-white/5 border border-white/10 rounded-xl px-3 py-2 flex items-center gap-2"
+                  className={`flex-shrink-0 rounded-xl px-3 py-2 flex items-center gap-2 ${darkMode ? 'bg-white/5 border border-white/10' : 'bg-gray-100 border border-gray-200'}`}
                   title={ach.description}
                 >
                   <span className="text-xl">{ach.icon}</span>
-                  <span className="text-xs font-medium text-white/70">{ach.name}</span>
+                  <span className={`text-xs font-medium ${darkMode ? 'text-white/70' : 'text-gray-700'}`}>{ach.name}</span>
                 </div>
               ))}
             </div>
@@ -337,7 +366,7 @@ const ScoutDashboard = () => {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-white/10 pb-4">
+        <div className={`flex gap-2 mb-6 border-b pb-4 ${darkMode ? 'border-white/10' : 'border-gray-200'}`}>
           {[
             { id: 'jobs', label: 'Available Jobs', count: jobs.length },
             { id: 'history', label: 'Completed', count: jobHistory.length },
@@ -347,13 +376,13 @@ const ScoutDashboard = () => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${activeTab === tab.id
-                ? 'bg-white text-black'
-                : 'text-white/50 hover:text-white hover:bg-white/10'
+                ? darkMode ? 'bg-white text-black' : 'bg-gray-900 text-white'
+                : darkMode ? 'text-white/50 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                 }`}
             >
               {tab.label}
               {tab.count > 0 && (
-                <span className={`ml-2 text-xs ${activeTab === tab.id ? 'text-black/60' : 'text-white/30'}`}>
+                <span className={`ml-2 text-xs ${activeTab === tab.id ? (darkMode ? 'text-black/60' : 'text-white/60') : (darkMode ? 'text-white/30' : 'text-gray-400')}`}>
                   ({tab.count})
                 </span>
               )}
@@ -362,7 +391,7 @@ const ScoutDashboard = () => {
           <button
             onClick={() => fetchJobs(true)}
             disabled={refreshing}
-            className="ml-auto flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors duration-300"
+            className={`ml-auto flex items-center gap-2 text-sm transition-colors duration-300 ${darkMode ? 'text-white/50 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}
           >
             <ArrowPathIcon className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
@@ -373,16 +402,16 @@ const ScoutDashboard = () => {
           <div className="space-y-4">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-20">
-                <div className="w-8 h-8 border-2 border-white/20 border-t-amber-400 rounded-full animate-spin"></div>
-                <p className="text-white/40 mt-4 text-sm">Loading jobs...</p>
+                <div className={`w-8 h-8 border-2 rounded-full animate-spin ${darkMode ? 'border-white/20 border-t-amber-400' : 'border-gray-200 border-t-amber-500'}`}></div>
+                <p className={`mt-4 text-sm ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>Loading jobs...</p>
               </div>
             ) : jobs.length === 0 ? (
-              <div className="text-center py-16 px-6 bg-white/5 rounded-3xl border border-white/10">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/10 flex items-center justify-center">
-                  <CheckCircleIcon className="h-8 w-8 text-white/30" />
+              <div className={`text-center py-16 px-6 rounded-3xl border ${darkMode ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-200'}`}>
+                <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${darkMode ? 'bg-white/10' : 'bg-gray-200'}`}>
+                  <CheckCircleIcon className={`h-8 w-8 ${darkMode ? 'text-white/30' : 'text-gray-400'}`} />
                 </div>
-                <h3 className="text-lg font-medium text-white/80">All Clear!</h3>
-                <p className="text-sm text-white/40 mt-2 max-w-xs mx-auto">
+                <h3 className={`text-lg font-medium ${darkMode ? 'text-white/80' : 'text-gray-700'}`}>All Clear!</h3>
+                <p className={`text-sm mt-2 max-w-xs mx-auto ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>
                   No pending jobs right now. Check back later or pull to refresh.
                 </p>
               </div>
@@ -397,7 +426,7 @@ const ScoutDashboard = () => {
                 return (
                   <div
                     key={job.id}
-                    className="group bg-gradient-to-br from-white/10 to-white/5 rounded-2xl overflow-hidden border border-white/10 hover:border-white/20 transition-all duration-500"
+                    className={`group rounded-2xl overflow-hidden border transition-all duration-500 ${darkMode ? 'bg-gradient-to-br from-white/10 to-white/5 border-white/10 hover:border-white/20' : 'bg-white border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md'}`}
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
                     <div className="p-5">
@@ -405,18 +434,18 @@ const ScoutDashboard = () => {
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <h3 className="text-lg font-semibold text-white group-hover:text-amber-300 transition-colors duration-300">
+                            <h3 className={`text-lg font-semibold transition-colors duration-300 ${darkMode ? 'text-white group-hover:text-amber-300' : 'text-gray-900 group-hover:text-amber-600'}`}>
                               {job.name}
                             </h3>
                             {isClaimed && (
-                              <span className="px-2 py-0.5 text-xs font-bold bg-amber-500/20 text-amber-400 rounded-full">
+                              <span className="px-2 py-0.5 text-xs font-bold bg-amber-500/20 text-amber-500 rounded-full">
                                 ✓ CLAIMED
                               </span>
                             )}
                           </div>
                           <div className="flex items-center gap-2 mt-1.5">
-                            <MapPinIcon className="h-3.5 w-3.5 text-red-400" />
-                            <span className="text-sm text-white/50">{job.address}</span>
+                            <MapPinIcon className="h-3.5 w-3.5 text-red-500" />
+                            <span className={`text-sm ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>{job.address}</span>
                           </div>
                         </div>
                         {/* Priority Badge */}
@@ -426,12 +455,12 @@ const ScoutDashboard = () => {
                       </div>
 
                       {/* Instructions Card */}
-                      <div className="bg-black/30 rounded-xl p-4 mb-4 border-l-2 border-amber-500">
+                      <div className={`rounded-xl p-4 mb-4 border-l-2 border-amber-500 ${darkMode ? 'bg-black/30' : 'bg-amber-50'}`}>
                         <div className="flex items-center gap-2 mb-2">
-                          <ClockIcon className="h-3.5 w-3.5 text-amber-400" />
-                          <span className="text-xs text-amber-400 font-medium">{formatDate(job.scheduled_date)}</span>
+                          <ClockIcon className="h-3.5 w-3.5 text-amber-500" />
+                          <span className="text-xs text-amber-500 font-medium">{formatDate(job.scheduled_date)}</span>
                         </div>
-                        <p className="text-sm text-white/70 leading-relaxed">
+                        <p className={`text-sm leading-relaxed ${darkMode ? 'text-white/70' : 'text-gray-700'}`}>
                           "{job.instructions || 'Standard site inspection'}"
                         </p>
                       </div>
@@ -443,14 +472,14 @@ const ScoutDashboard = () => {
                             href={job.google_maps_link}
                             target="_blank"
                             rel="noreferrer"
-                            className="flex-1 py-2.5 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-xl text-center text-sm font-medium text-blue-400 transition-all flex items-center justify-center gap-2"
+                            className={`flex-1 py-2.5 rounded-xl text-center text-sm font-medium transition-all flex items-center justify-center gap-2 ${darkMode ? 'bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400' : 'bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-600'}`}
                           >
                             <MapPinIcon className="h-4 w-4" />
                             Navigate
                           </a>
                         )}
                         <button
-                          className="px-4 py-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 rounded-xl text-sm text-emerald-400 transition-all flex items-center gap-2"
+                          className={`px-4 py-2.5 rounded-xl text-sm transition-all flex items-center gap-2 ${darkMode ? 'bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-600'}`}
                           onClick={async () => {
                             setLoadingAuth(true);
                             try {
@@ -468,7 +497,7 @@ const ScoutDashboard = () => {
                           Show Auth
                         </button>
                         <button
-                          className="px-4 py-2.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-xl text-sm text-red-400 transition-all flex items-center gap-2"
+                          className={`px-4 py-2.5 rounded-xl text-sm transition-all flex items-center gap-2 ${darkMode ? 'bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400' : 'bg-red-50 hover:bg-red-100 border border-red-200 text-red-600'}`}
                           onClick={async () => {
                             const reason = prompt('Why are you aborting this mission?\n\nValid reasons:\n- Hostile/threatening people at location\n- "Keep Off" or warning signs\n- Unsafe environment\n- Other safety concern');
                             if (!reason) return;
@@ -491,12 +520,12 @@ const ScoutDashboard = () => {
                       <div className="space-y-3">
                         {/* File Preview */}
                         {hasFiles && (
-                          <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                          <div className={`rounded-xl p-4 border ${darkMode ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-200'}`}>
                             <div className="flex justify-between items-center mb-2">
-                              <span className="text-xs font-bold text-white/50 uppercase tracking-wider">Captured Media</span>
+                              <span className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>Captured Media</span>
                               <button
                                 onClick={() => clearSelection(job.id)}
-                                className="text-xs text-red-400 hover:text-red-300 font-medium"
+                                className="text-xs text-red-500 hover:text-red-600 font-medium"
                               >
                                 Clear All
                               </button>
@@ -516,8 +545,8 @@ const ScoutDashboard = () => {
 
                         {/* Notes Field */}
                         {hasFiles && (
-                          <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                            <label className="flex items-center gap-2 text-xs font-bold text-white/50 uppercase tracking-wider mb-2">
+                          <div className={`rounded-xl p-4 border ${darkMode ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-200'}`}>
+                            <label className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider mb-2 ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>
                               <DocumentTextIcon className="h-3.5 w-3.5" />
                               Scout Notes (Optional)
                             </label>
@@ -525,7 +554,7 @@ const ScoutDashboard = () => {
                               value={scoutNotes[job.id] || ''}
                               onChange={(e) => setScoutNotes(prev => ({ ...prev, [job.id]: e.target.value }))}
                               placeholder="Add observations... (e.g., 'Foundation complete, workers on-site, materials delivered')"
-                              className="w-full bg-black/30 border border-white/10 rounded-lg p-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-amber-500/50 resize-none"
+                              className={`w-full border rounded-lg p-3 text-sm focus:outline-none focus:border-amber-500/50 resize-none ${darkMode ? 'bg-black/30 border-white/10 text-white placeholder:text-white/30' : 'bg-white border-gray-200 text-gray-900 placeholder:text-gray-400'}`}
                               rows={2}
                             />
                           </div>
@@ -563,7 +592,7 @@ const ScoutDashboard = () => {
                                 onChange={(e) => handleFileSelect(e, job.id)}
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                               />
-                              <button className="w-full py-3 rounded-xl font-bold text-xs sm:text-sm flex flex-col sm:flex-row justify-center items-center gap-1 sm:gap-2 bg-white/10 hover:bg-white/20 text-white transition-all border border-white/5">
+                              <button className={`w-full py-3 rounded-xl font-bold text-xs sm:text-sm flex flex-col sm:flex-row justify-center items-center gap-1 sm:gap-2 transition-all border ${darkMode ? 'bg-white/10 hover:bg-white/20 text-white border-white/5' : 'bg-gray-100 hover:bg-gray-200 text-gray-900 border-gray-200'}`}>
                                 <CameraIcon className="h-5 w-5 text-amber-400" />
                                 <span>Snap Photo</span>
                               </button>
@@ -576,7 +605,7 @@ const ScoutDashboard = () => {
                                 onChange={(e) => handleFileSelect(e, job.id)}
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                               />
-                              <button className="w-full py-3 rounded-xl font-bold text-xs sm:text-sm flex flex-col sm:flex-row justify-center items-center gap-1 sm:gap-2 bg-white/10 hover:bg-white/20 text-white transition-all border border-white/5">
+                              <button className={`w-full py-3 rounded-xl font-bold text-xs sm:text-sm flex flex-col sm:flex-row justify-center items-center gap-1 sm:gap-2 transition-all border ${darkMode ? 'bg-white/10 hover:bg-white/20 text-white border-white/5' : 'bg-gray-100 hover:bg-gray-200 text-gray-900 border-gray-200'}`}>
                                 <div className="relative w-5 h-5 flex items-center justify-center">
                                   <div className="absolute w-4 h-4 rounded-full border-2 border-red-500"></div>
                                   <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
@@ -623,29 +652,29 @@ const ScoutDashboard = () => {
         {activeTab === 'history' && (
           <div className="space-y-4">
             {jobHistory.length === 0 ? (
-              <div className="text-center py-16 px-6 bg-white/5 rounded-3xl border border-white/10">
-                <p className="text-white/40">No completed jobs yet. Complete your first job to see it here!</p>
+              <div className={`text-center py-16 px-6 rounded-3xl border ${darkMode ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-200'}`}>
+                <p className={darkMode ? 'text-white/40' : 'text-gray-500'}>No completed jobs yet. Complete your first job to see it here!</p>
               </div>
             ) : (
               jobHistory.map((job, index) => (
                 <div
                   key={job.id}
-                  className="bg-white/5 rounded-2xl p-5 border border-white/10"
+                  className={`rounded-2xl p-5 border ${darkMode ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200 shadow-sm'}`}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h4 className="font-semibold text-white">{job.name}</h4>
-                      <p className="text-xs text-white/40 mt-1">{job.address}</p>
+                      <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{job.name}</h4>
+                      <p className={`text-xs mt-1 ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>{job.address}</p>
                     </div>
                     <div className="text-right">
-                      <span className="text-emerald-400 font-bold">GHS 25</span>
-                      <p className="text-xs text-white/40">
+                      <span className="text-emerald-500 font-bold">GHS 25</span>
+                      <p className={`text-xs ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>
                         {new Date(job.completed_at).toLocaleDateString()}
                       </p>
                       <div className="mt-1">
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${job.status === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-400' :
-                            job.status === 'PENDING_APPROVAL' ? 'bg-purple-500/20 text-purple-400' :
-                              'bg-white/10 text-white/50'
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${job.status === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-500' :
+                          job.status === 'PENDING_APPROVAL' ? 'bg-purple-500/20 text-purple-500' :
+                            darkMode ? 'bg-white/10 text-white/50' : 'bg-gray-100 text-gray-500'
                           }`}>
                           {job.status === 'PENDING_APPROVAL' ? 'Pending Review' : job.status}
                         </span>
@@ -653,12 +682,12 @@ const ScoutDashboard = () => {
                     </div>
                   </div>
                   {job.scout_notes && (
-                    <div className="bg-black/20 rounded-lg p-3 mt-3">
-                      <p className="text-xs text-white/50 mb-1">Your Notes:</p>
-                      <p className="text-sm text-white/70">{job.scout_notes}</p>
+                    <div className={`rounded-lg p-3 mt-3 ${darkMode ? 'bg-black/20' : 'bg-gray-50'}`}>
+                      <p className={`text-xs mb-1 ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>Your Notes:</p>
+                      <p className={`text-sm ${darkMode ? 'text-white/70' : 'text-gray-700'}`}>{job.scout_notes}</p>
                     </div>
                   )}
-                  <div className="flex items-center gap-3 mt-3 text-xs text-white/40">
+                  <div className={`flex items-center gap-3 mt-3 text-xs ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>
                     <span>📸 {job.media_count || 0} media</span>
                     {job.client_rating && (
                       <span className="flex items-center gap-1">
@@ -676,17 +705,17 @@ const ScoutDashboard = () => {
         {/* Wallet Tab */}
         {activeTab === 'wallet' && (
           <div className="space-y-6">
-            <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/10 rounded-2xl p-6 border border-white/10">
-              <h3 className="text-xl font-bold text-white mb-2">💰 Payout Settings</h3>
-              <p className="text-white/60 text-sm mb-6">Add your mobile money details to receive payments for completed jobs.</p>
+            <div className={`rounded-2xl p-6 border ${darkMode ? 'bg-gradient-to-br from-amber-500/20 to-orange-500/10 border-white/10' : 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200'}`}>
+              <h3 className={`text-xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>💰 Payout Settings</h3>
+              <p className={`text-sm mb-6 ${darkMode ? 'text-white/60' : 'text-gray-600'}`}>Add your mobile money details to receive payments for completed jobs.</p>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-white/70 mb-2">Mobile Money Provider</label>
+                  <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white/70' : 'text-gray-700'}`}>Mobile Money Provider</label>
                   <select
                     value={wallet.provider}
                     onChange={(e) => setWallet({ ...wallet, provider: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 text-white rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    className={`w-full rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-amber-500 ${darkMode ? 'bg-white/5 border border-white/10 text-white' : 'bg-white border border-gray-200 text-gray-900'}`}
                   >
                     <option value="">Select Provider...</option>
                     <option value="MTN">MTN Mobile Money</option>
@@ -696,13 +725,13 @@ const ScoutDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-white/70 mb-2">Mobile Money Number</label>
+                  <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white/70' : 'text-gray-700'}`}>Mobile Money Number</label>
                   <input
                     type="tel"
                     value={wallet.number}
                     onChange={(e) => setWallet({ ...wallet, number: e.target.value })}
                     placeholder="e.g. 0241234567"
-                    className="w-full bg-white/5 border border-white/10 text-white rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder:text-white/30"
+                    className={`w-full rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-amber-500 ${darkMode ? 'bg-white/5 border border-white/10 text-white placeholder:text-white/30' : 'bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400'}`}
                   />
                 </div>
 
@@ -730,23 +759,23 @@ const ScoutDashboard = () => {
               </div>
             </div>
 
-            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-              <h4 className="text-lg font-semibold text-white mb-4">How Payouts Work</h4>
-              <ul className="space-y-3 text-sm text-white/60">
+            <div className={`rounded-2xl p-6 border ${darkMode ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-200'}`}>
+              <h4 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>How Payouts Work</h4>
+              <ul className={`space-y-3 text-sm ${darkMode ? 'text-white/60' : 'text-gray-600'}`}>
                 <li className="flex items-start gap-3">
-                  <span className="text-amber-400">1.</span>
+                  <span className="text-amber-500">1.</span>
                   Complete a job and submit photos/videos
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-amber-400">2.</span>
+                  <span className="text-amber-500">2.</span>
                   Client reviews and approves your submission
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-amber-400">3.</span>
+                  <span className="text-amber-500">3.</span>
                   GHS 25 is credited to your account
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-amber-400">4.</span>
+                  <span className="text-amber-500">4.</span>
                   Request withdrawal to your mobile money
                 </li>
               </ul>
@@ -827,6 +856,9 @@ const ScoutDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Bottom Navigation */}
+      <ScoutBottomNav />
     </div>
   );
 };

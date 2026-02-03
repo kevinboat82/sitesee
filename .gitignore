@@ -1,4 +1,31 @@
+# Dependencies
 node_modules
+
+# Environment files (NEVER COMMIT THESE!)
 .env
+.env.local
+.env.*.local
+*.env
+
+# Build output
 dist
+build
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/*
+!.vscode/settings.json
+.idea
+
+# Logs
+*.log
+npm-debug.log*
+
+# Security-sensitive files
+*.pem
+*.key
+*.crt
+*.p12

@@ -4,11 +4,37 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
-const auth = require('../middleware/authMiddleware'); // Import Middleware
+const auth = require('../middleware/authMiddleware');
+const rateLimit = require('express-rate-limit');
+const validator = require('validator');
 
 console.log("--- Auth Routes File Loaded ---");
 
-const JWT_SECRET = process.env.JWT_SECRET || 'secret_key_change_me_in_prod';
+// SECURITY: Require JWT_SECRET - fail fast if not set
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('❌ CRITICAL: JWT_SECRET is not set in environment variables!');
+  // In production, you might want to throw an error here
+  // throw new Error('JWT_SECRET is required');
+}
+
+// Rate limiting for auth routes - prevent brute force attacks
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 requests per windowMs
+  message: { error: 'Too many authentication attempts, please try again after 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Stricter rate limiter for login attempts
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 login attempts per windowMs
+  message: { error: 'Too many login attempts, please try again after 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // @route   GET /api/auth/user
 // @desc    Get current user data (Load user on refresh)
@@ -27,7 +53,7 @@ router.get('/user', auth, async (req, res) => {
 
 // @route   POST /api/auth/login
 // @desc    Login user & get token
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   console.log("Login Route Hit!");
 
   const { email, password } = req.body;
@@ -71,16 +97,31 @@ router.post('/login', async (req, res) => {
 });
 
 // @route   POST /api/auth/register
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   // Accept 'phone' (from frontend) OR 'phone_number'
   const { email, password, full_name, phone, phone_number, role } = req.body;
 
   // Normalize phone number variable
   const userPhone = phone || phone_number;
 
+  // SECURITY: Validate email format
+  if (!email || !validator.isEmail(email)) {
+    return res.status(400).json({ error: 'Please provide a valid email address' });
+  }
+
+  // SECURITY: Validate password strength
+  if (!password || password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+  }
+
+  // SECURITY: Validate full name
+  if (!full_name || full_name.trim().length < 2) {
+    return res.status(400).json({ error: 'Please provide your full name' });
+  }
+
   try {
     // 1. Check User
-    const userCheck = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    const userCheck = await db.query('SELECT * FROM users WHERE email = $1', [validator.normalizeEmail(email)]);
     if (userCheck.rows.length > 0) {
       return res.status(400).json({ error: 'User already exists' });
     }

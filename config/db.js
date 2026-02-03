@@ -9,10 +9,16 @@ const connectionString = process.env.DATABASE_URL;
 // If not, we assume it's local and disable SSL.
 const isNeonConnection = connectionString && connectionString.includes('neon.tech');
 
+// SECURITY: Use proper SSL settings
+// In production, you can set NODE_ENV=production to enforce certificate validation
+const isProduction = process.env.NODE_ENV === 'production';
+
 const pool = new Pool({
   connectionString: connectionString,
-  // If it's Neon, use SSL. If it's Local, set ssl to false (undefined).
-  ssl: isNeonConnection ? { rejectUnauthorized: false } : undefined,
+  // For cloud connections, use SSL with proper validation in production
+  ssl: isNeonConnection ? {
+    rejectUnauthorized: isProduction // Validate certs in production, be lenient in dev
+  } : undefined,
 });
 
 // Test the connection when the app starts
